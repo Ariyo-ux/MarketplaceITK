@@ -1,53 +1,47 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#007AFF' }}>
+    <Tabs screenOptions={{ 
+      tabBarActiveTintColor: '#00AA5B',
+      tabBarInactiveTintColor: '#999999',
+      headerShown: false,
+      tabBarStyle: { height: 60, paddingBottom: 10, paddingTop: 5 }
+    }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Beranda',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
+          title: 'Home',
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="add-product"
         options={{
-          title: 'Jual',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <Ionicons name="add-circle" size={24} color={color} />,
+          title: 'Sell Item',
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "add-circle" : "add-circle-outline"} size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="mail"
+        options={{
+          title: 'Mail',
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "mail" : "mail-outline"} size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="transaction"
+        options={{
+          title: 'Transaction',
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "receipt" : "receipt-outline"} size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profil',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
-        }}
-      />
-      {/* Screen sekunder — diakses dari halaman Profil, bukan dari tab bar */}
-      <Tabs.Screen
-        name="my-products"
-        options={{
-          title: 'Produk Saya',
-          tabBarButton: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="saved-products"
-        options={{
-          title: 'Barang Disimpan',
-          tabBarButton: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="account-settings"
-        options={{
-          title: 'Pengaturan Akun',
-          tabBarButton: () => null,
+          title: 'Account',
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />,
         }}
       />
     </Tabs>

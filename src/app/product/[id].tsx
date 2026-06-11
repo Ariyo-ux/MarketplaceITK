@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { DUMMY_PRODUCTS } from '../../data/products';
+import { DUMMY_PRODUCTS, Product } from '../../data/products';
 
 
 
@@ -9,7 +9,9 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
-  const product = DUMMY_PRODUCTS.find(p => p.id === id);
+  // Memastikan id dibaca sebagai string, bukan array of strings
+  const productId = Array.isArray(id) ? id[0] : id;
+  const product = DUMMY_PRODUCTS.find((p) => p.id === productId);
 
   if (!product) {
     return (
