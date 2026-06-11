@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,15 +7,33 @@ import { useAuth } from '../context/AuthContext';
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { register } = useAuth();
 
-  const handleRegister = () => {
-    if (name && email && password) {
-      register(name, email);
-      router.back(); // Kembali ke halaman sebelumnya setelah berhasil daftar
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleRegister = async () => {
+    if (name && email && whatsapp && password) {
+      setIsLoading(true);
+      try {
+        await register(name, email, whatsapp, password);
+        router.back(); // Kembali ke halaman sebelumnya setelah berhasil daftar
+      } catch (error: any) {
+        let errorMessage = "Terjadi kesalahan saat pendaftaran. Silakan coba lagi.";
+        if (error.code === 'auth/email-already-in-use') {
+          errorMessage = "Email ini sudah digunakan oleh akun lain.";
+        } else if (error.code === 'auth/invalid-email') {
+          errorMessage = "Format email tidak valid.";
+        } else if (error.code === 'auth/weak-password') {
+          errorMessage = "Kata sandi terlalu lemah. Gunakan minimal 6 karakter.";
+        }
+        Alert.alert("Pendaftaran Gagal", errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -43,7 +61,7 @@ export default function RegisterScreen() {
               <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Masukkan nama lengkap"
+                placeholder="Contoh Ariyo Arianto"
                 value={name}
                 onChangeText={setName}
               />
@@ -56,11 +74,25 @@ export default function RegisterScreen() {
               <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="email@student.itk.ac.id"
+                placeholder="Contoh 04xxxxxx"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nomor WhatsApp</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="logo-whatsapp" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Contoh 08xx.xxxx.xxxx"
+                keyboardType="phone-pad"
+                value={whatsapp}
+                onChangeText={setWhatsapp}
               />
             </View>
           </View>
@@ -83,11 +115,11 @@ export default function RegisterScreen() {
           </View>
 
           <TouchableOpacity 
-            style={[styles.registerButton, (!name || !email || !password) && styles.registerButtonDisabled]} 
+            style={[styles.registerButton, (!name || !email || !whatsapp || !password || isLoading) && styles.registerButtonDisabled]} 
             onPress={handleRegister}
-            disabled={!name || !email || !password}
+            disabled={!name || !email || !whatsapp || !password || isLoading}
           >
-            <Text style={styles.registerButtonText}>Daftar</Text>
+            <Text style={styles.registerButtonText}>{isLoading ? 'Memproses...' : 'Daftar'}</Text>
           </TouchableOpacity>
         </View>
 

@@ -1,30 +1,64 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Image } from 'react-native';
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../context/AuthContext';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
 
-  const handleLogin = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
     if (email && password) {
-      login(email);
-      router.back(); // Kembali ke halaman sebelumnya
+      setIsLoading(true);
+      try {
+        await login(email, password);
+        router.back(); // Kembali ke halaman sebelumnya
+      } catch (error: any) {
+        let errorMessage = "Terjadi kesalahan saat masuk. Silakan coba lagi.";
+        if (
+          error.code === "auth/user-not-found" ||
+          error.code === "auth/wrong-password" ||
+          error.code === "auth/invalid-credential"
+        ) {
+          errorMessage =
+            "Email atau kata sandi yang Anda masukkan salah. Silakan coba lagi.";
+        } else if (error.code === "auth/too-many-requests") {
+          errorMessage =
+            "Terlalu banyak percobaan gagal. Silakan coba beberapa saat lagi.";
+        }
+        Alert.alert("Gagal Masuk", errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <Ionicons name="close" size={28} color="#333" />
         </TouchableOpacity>
       </View>
@@ -32,7 +66,7 @@ export default function LoginScreen() {
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <Image
-            source={require('../../assets/images/logo.png')}
+            source={require("../../assets/images/logo.png")}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -40,14 +74,21 @@ export default function LoginScreen() {
 
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Selamat Datang!</Text>
-          <Text style={styles.subtitle}>Masuk untuk melanjutkan ke Marketplace ITK.</Text>
+          <Text style={styles.subtitle}>
+            Masuk untuk melanjutkan ke Marketplace ITK.
+          </Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email Kampus</Text>
             <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color="#666"
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="email@student.itk.ac.id"
@@ -62,7 +103,12 @@ export default function LoginScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Kata Sandi</Text>
             <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color="#666"
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Masukkan kata sandi"
@@ -70,8 +116,15 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#666" />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="#666"
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -80,18 +133,23 @@ export default function LoginScreen() {
             <Text style={styles.forgotPasswordText}>Lupa Kata Sandi?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.loginButton, (!email || !password) && styles.loginButtonDisabled]} 
+          <TouchableOpacity
+            style={[
+              styles.loginButton,
+              (!email || !password || isLoading) && styles.loginButtonDisabled,
+            ]}
             onPress={handleLogin}
-            disabled={!email || !password}
+            disabled={!email || !password || isLoading}
           >
-            <Text style={styles.loginButtonText}>Masuk</Text>
+            <Text style={styles.loginButtonText}>
+              {isLoading ? "Memproses..." : "Masuk"}
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Belum punya akun? </Text>
-          <TouchableOpacity onPress={() => router.replace('/register')}>
+          <TouchableOpacity onPress={() => router.replace("/register")}>
             <Text style={styles.registerText}>Daftar Sekarang</Text>
           </TouchableOpacity>
         </View>
@@ -103,7 +161,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   header: {
     paddingTop: 50,
@@ -113,9 +171,9 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F5F7FA",
     borderRadius: 20,
   },
   content: {
@@ -124,7 +182,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
   logo: {
@@ -136,13 +194,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
+    fontWeight: "bold",
+    color: "#1A1A1A",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666666',
+    color: "#666666",
     lineHeight: 24,
   },
   form: {
@@ -153,16 +211,16 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: "600",
+    color: "#333333",
     marginBottom: 8,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F7FA",
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: "#EAEAEA",
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 56,
@@ -173,56 +231,56 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#333333',
-    height: '100%',
+    color: "#333333",
+    height: "100%",
   },
   eyeIcon: {
     padding: 8,
   },
   forgotPassword: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
     marginBottom: 30,
   },
   forgotPasswordText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   loginButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     height: 56,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#007AFF',
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#007AFF",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   loginButtonDisabled: {
-    backgroundColor: '#A0CFFF',
+    backgroundColor: "#A0CFFF",
     shadowOpacity: 0,
     elevation: 0,
   },
   loginButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 'auto',
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: "auto",
     marginBottom: 40,
   },
   footerText: {
-    color: '#666666',
+    color: "#666666",
     fontSize: 14,
   },
   registerText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
