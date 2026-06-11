@@ -44,6 +44,32 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />,
         }}
       />
+      
+      {/* Halaman sekunder yang disembunyikan dari tab bar */}
+      <Tabs.Screen
+        name="my-products"
+        options={{
+          href: null,
+          title: 'Produk Saya',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="saved-products"
+        options={{
+          href: null,
+          title: 'Barang Disimpan',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="account-settings"
+        options={{
+          href: null,
+          title: 'Pengaturan Akun',
+          tabBarButton: () => null,
+        }}
+      />
     </Tabs>
   );
 }
