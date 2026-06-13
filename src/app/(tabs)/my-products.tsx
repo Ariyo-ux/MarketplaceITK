@@ -1,45 +1,132 @@
 import { Ionicons } from '@expo/vector-icons';
-import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { db } from '../../config/firebase';
+import { useAuth } from '../../context/AuthContext';
 
-const PRODUCTS = [
-  {
-    id: '1',
-    title: 'Laptop ASUS ROG',
-    price: 8500000,
-    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?q=80&w=400&auto=format&fit=crop',
-  },
-  {
-    id: '2',
-    title: 'Buku Kalkulus',
-    price: 150000,
-    image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop',
-  },
-];
+type Product = {
+  id: string;
+  title: string;
+  price: number;
+  imageBase64: string;
+  category: string;
+  condition: string;
+  status: string;
+  createdAt: any;
+};
 
 export default function MyProductsScreen() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Query tanpa orderBy agar tidak perlu composite index
+    const q = query(
+      collection(db, 'products'),
+      where('sellerId', '==', user.id)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data: Product[] = snapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Product, 'id'>),
+        }))
+        .sort((a: any, b: any) => {
+          const aTime = a.createdAt?.seconds ?? 0;
+          const bTime = b.createdAt?.seconds ?? 0;
+          return bTime - aTime;
+        });
+      setProducts(data);
+      setIsLoading(false);
+    }, (error) => {
+      console.error('Error fetching my products:', error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centerContainer}>
+          <Ionicons name="person-outline" size={72} color="#CCCCCC" />
+          <Text style={styles.emptyTitle}>Belum Masuk</Text>
+          <Text style={styles.emptySubtitle}>Masuk terlebih dahulu untuk melihat produk yang kamu jual.</Text>
+          <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/login')}>
+            <Text style={styles.loginButtonText}>Masuk</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  const activeCount = products.filter(p => p.status === 'active').length;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Produk Saya</Text>
-        <Text style={styles.subtitle}>{PRODUCTS.length} produk aktif</Text>
+        <Text style={styles.subtitle}>{activeCount} produk aktif</Text>
       </View>
 
-      <FlatList
-        data={PRODUCTS}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={{ uri: item.image }} style={styles.image} />
-            <View style={styles.info}>
-              <Text style={styles.name} numberOfLines={2}>{item.title}</Text>
-              <Text style={styles.price}>Rp {item.price.toLocaleString('id-ID')}</Text>
+      {isLoading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Memuat produkmu...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={products}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[styles.list, products.length === 0 && { flex: 1 }]}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.centerContainer}>
+              <Ionicons name="cube-outline" size={72} color="#CCCCCC" />
+              <Text style={styles.emptyTitle}>Belum Ada Produk</Text>
+              <Text style={styles.emptySubtitle}>Kamu belum menjual apapun. Tap "Sell Item" untuk mulai!</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#CCC" />
-          </View>
-        )}
-      />
+          }
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Image
+                source={{ uri: item.imageBase64 }}
+                style={styles.image}
+                resizeMode="cover"
+              />
+              <View style={styles.info}>
+                <Text style={styles.name} numberOfLines={2}>{item.title}</Text>
+                <Text style={styles.price}>Rp {item.price.toLocaleString('id-ID')}</Text>
+                <View style={[styles.statusBadge, item.status === 'sold' && styles.statusBadgeSold]}>
+                  <Text style={[styles.statusText, item.status === 'sold' && styles.statusTextSold]}>
+                    {item.status === 'active' ? 'Aktif' : 'Terjual'}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -52,7 +139,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
@@ -66,6 +153,40 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#888888',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#888',
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  loginButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 8,
+  },
+  loginButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   list: {
     padding: 16,
@@ -84,24 +205,43 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   image: {
-    width: 72,
-    height: 72,
+    width: 76,
+    height: 76,
     borderRadius: 12,
     backgroundColor: '#EAEAEA',
     marginRight: 14,
   },
   info: {
     flex: 1,
+    gap: 4,
   },
   name: {
     fontSize: 15,
     fontWeight: '600',
     color: '#333333',
-    marginBottom: 6,
   },
   price: {
     fontSize: 15,
     fontWeight: 'bold',
     color: '#007AFF',
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+    marginTop: 4,
+  },
+  statusBadgeSold: {
+    backgroundColor: '#FBE9E7',
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#388E3C',
+  },
+  statusTextSold: {
+    color: '#D32F2F',
   },
 });

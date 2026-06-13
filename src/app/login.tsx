@@ -23,29 +23,40 @@ export default function LoginScreen() {
 
   const [isLoading, setIsLoading] = useState(false);
 
+  const ITK_DOMAIN = "@student.itk.ac.id";
+
   const handleLogin = async () => {
-    if (email && password) {
-      setIsLoading(true);
-      try {
-        await login(email, password);
-        router.back(); // Kembali ke halaman sebelumnya
-      } catch (error: any) {
-        let errorMessage = "Terjadi kesalahan saat masuk. Silakan coba lagi.";
-        if (
-          error.code === "auth/user-not-found" ||
-          error.code === "auth/wrong-password" ||
-          error.code === "auth/invalid-credential"
-        ) {
-          errorMessage =
-            "Email atau kata sandi yang Anda masukkan salah. Silakan coba lagi.";
-        } else if (error.code === "auth/too-many-requests") {
-          errorMessage =
-            "Terlalu banyak percobaan gagal. Silakan coba beberapa saat lagi.";
-        }
-        Alert.alert("Gagal Masuk", errorMessage);
-      } finally {
-        setIsLoading(false);
+    if (!email || !password) return;
+
+    // Validasi domain email kampus ITK
+    if (!email.toLowerCase().endsWith(ITK_DOMAIN)) {
+      Alert.alert(
+        "Email Tidak Valid",
+        "Hanya email kampus ITK yang diizinkan.\nGunakan format: nama@student.itk.ac.id"
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await login(email, password);
+      router.back(); // Kembali ke halaman sebelumnya
+    } catch (error: any) {
+      let errorMessage = "Terjadi kesalahan saat masuk. Silakan coba lagi.";
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        errorMessage =
+          "Email atau kata sandi yang Anda masukkan salah. Silakan coba lagi.";
+      } else if (error.code === "auth/too-many-requests") {
+        errorMessage =
+          "Terlalu banyak percobaan gagal. Silakan coba beberapa saat lagi.";
       }
+      Alert.alert("Gagal Masuk", errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -145,6 +156,8 @@ export default function LoginScreen() {
               {isLoading ? "Memproses..." : "Masuk"}
             </Text>
           </TouchableOpacity>
+
+          <Text style={styles.emailHint}>Hanya untuk mahasiswa ITK (@student.itk.ac.id)</Text>
         </View>
 
         <View style={styles.footer}>
@@ -245,6 +258,12 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     fontSize: 14,
     fontWeight: "600",
+  },
+  emailHint: {
+    marginTop: 12,
+    textAlign: "center",
+    fontSize: 12,
+    color: "#888888",
   },
   loginButton: {
     backgroundColor: "#007AFF",

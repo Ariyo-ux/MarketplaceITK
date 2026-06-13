@@ -1,8 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+// @ts-ignore – getReactNativePersistence type definition hilang di firebase v12, tapi berfungsi di runtime
+import { getReactNativePersistence, initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// TODO: Ganti konfigurasi di bawah dengan konfigurasi dari Firebase Console Anda
 const firebaseConfig = {
   apiKey: "AIzaSyADeFr_LEMSp2v3c8_BsfzI78RruPXMP5o",
   authDomain: "marketplaceitk.firebaseapp.com",
@@ -21,7 +22,13 @@ if (isConfigured) {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 }
 
-const auth = app ? getAuth(app) : ({} as any);
+// Gunakan initializeAuth + AsyncStorage agar sesi login tersimpan saat app ditutup
+const auth = app
+  ? initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    })
+  : ({} as any);
+
 const db = app ? getFirestore(app) : ({} as any);
 
 export { auth, db };

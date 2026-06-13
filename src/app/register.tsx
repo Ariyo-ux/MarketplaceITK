@@ -15,25 +15,36 @@ export default function RegisterScreen() {
 
   const [isLoading, setIsLoading] = useState(false);
 
+  const ITK_DOMAIN = "@student.itk.ac.id";
+
   const handleRegister = async () => {
-    if (name && email && whatsapp && password) {
-      setIsLoading(true);
-      try {
-        await register(name, email, whatsapp, password);
-        router.back(); // Kembali ke halaman sebelumnya setelah berhasil daftar
-      } catch (error: any) {
-        let errorMessage = "Terjadi kesalahan saat pendaftaran. Silakan coba lagi.";
-        if (error.code === 'auth/email-already-in-use') {
-          errorMessage = "Email ini sudah digunakan oleh akun lain.";
-        } else if (error.code === 'auth/invalid-email') {
-          errorMessage = "Format email tidak valid.";
-        } else if (error.code === 'auth/weak-password') {
-          errorMessage = "Kata sandi terlalu lemah. Gunakan minimal 6 karakter.";
-        }
-        Alert.alert("Pendaftaran Gagal", errorMessage);
-      } finally {
-        setIsLoading(false);
+    if (!name || !email || !whatsapp || !password) return;
+
+    // Validasi domain email kampus ITK
+    if (!email.toLowerCase().endsWith(ITK_DOMAIN)) {
+      Alert.alert(
+        "Email Tidak Valid",
+        "Hanya email kampus ITK yang diizinkan.\nGunakan format: nama@student.itk.ac.id"
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await register(name, email, whatsapp, password);
+      router.back(); // Kembali ke halaman sebelumnya setelah berhasil daftar
+    } catch (error: any) {
+      let errorMessage = "Terjadi kesalahan saat pendaftaran. Silakan coba lagi.";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Email ini sudah digunakan oleh akun lain.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Format email tidak valid.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "Kata sandi terlalu lemah. Gunakan minimal 6 karakter.";
       }
+      Alert.alert("Pendaftaran Gagal", errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -74,13 +85,14 @@ export default function RegisterScreen() {
               <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Contoh 04xxxxxx"
+                placeholder="nama@student.itk.ac.id"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
               />
             </View>
+            <Text style={styles.emailHint}>Gunakan email kampus ITK (@student.itk.ac.id)</Text>
           </View>
 
           <View style={styles.inputGroup}>
@@ -201,6 +213,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333333',
     height: '100%',
+  },
+  emailHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#888888',
   },
   eyeIcon: {
     padding: 8,
