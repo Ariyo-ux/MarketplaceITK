@@ -1,5 +1,11 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+// @ts-ignore
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  getAuth,
+  getReactNativePersistence,
+  initializeAuth,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -21,7 +27,20 @@ if (isConfigured) {
 }
 
 // Gunakan initializeAuth + AsyncStorage agar sesi login tersimpan saat app ditutup
-const auth = app ? getAuth(app) : ({} as any);
+let auth: any = {} as any;
+if (app) {
+  try {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error: any) {
+    if (error.code === "auth/already-initialized") {
+      auth = getAuth(app);
+    } else {
+      console.error("Firebase Auth Init Error:", error);
+    }
+  }
+}
 
 const db = app ? getFirestore(app) : ({} as any);
 
