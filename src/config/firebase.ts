@@ -1,11 +1,8 @@
-import { getApp, getApps, initializeApp } from "firebase/app";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  getAuth,
-  initializeAuth,
-} from "firebase/auth";
+import { getApp, getApps, initializeApp } from "firebase/app";
+import { getAuth, initializeAuth } from "firebase/auth";
+import { Platform } from "react-native";
 // @ts-ignore
-import { getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -30,11 +27,17 @@ if (isConfigured) {
 let auth: any = {} as any;
 if (app) {
   try {
-    // Menyiasati error "has no exported member" pada TypeScript di versi Firebase tertentu
-    const { getReactNativePersistence: getRNP } = require('firebase/auth');
-    auth = initializeAuth(app, {
-      persistence: getRNP(AsyncStorage),
-    });
+    if (Platform.OS === "web") {
+      // Di Web, Firebase otomatis mengatur persistence ke browserLocalPersistence
+      // Jadi kita tidak perlu memaksakan getReactNativePersistence yang tidak tersedia di Web
+      auth = getAuth(app);
+    } else {
+      // Menyiasati error "has no exported member" pada TypeScript di versi Firebase tertentu
+      const { getReactNativePersistence: getRNP } = require("firebase/auth");
+      auth = initializeAuth(app, {
+        persistence: getRNP(AsyncStorage),
+      });
+    }
   } catch (error: any) {
     if (error.code === "auth/already-initialized") {
       auth = getAuth(app);

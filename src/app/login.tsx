@@ -31,10 +31,14 @@ export default function LoginScreen() {
 
     // Validasi domain email kampus ITK
     if (!email.toLowerCase().endsWith(ITK_DOMAIN)) {
-      Alert.alert(
-        "Email Tidak Valid",
-        "Hanya email kampus ITK yang diizinkan.\nGunakan format: nama@student.itk.ac.id",
-      );
+      if (Platform.OS === "web") {
+        window.alert("Email Tidak Valid\n\nHanya email kampus ITK yang diizinkan.\nGunakan format: nama@student.itk.ac.id");
+      } else {
+        Alert.alert(
+          "Email Tidak Valid",
+          "Hanya email kampus ITK yang diizinkan.\nGunakan format: nama@student.itk.ac.id",
+        );
+      }
       return;
     }
 
@@ -55,7 +59,11 @@ export default function LoginScreen() {
         errorMessage =
           "Terlalu banyak percobaan gagal. Silakan coba beberapa saat lagi.";
       }
-      Alert.alert("Gagal Masuk", errorMessage);
+      if (Platform.OS === "web") {
+        window.alert(`Gagal Masuk\n\n${errorMessage}`);
+      } else {
+        Alert.alert("Gagal Masuk", errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -1,27 +1,44 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Image,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useAuth } from "../../context/AuthContext";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
 
-  const handleLogout = () => {
-    Alert.alert(
-      "Konfirmasi Keluar",
-      "Apakah Anda yakin ingin keluar dari akun ini?",
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Ya, Keluar",
-          style: "destructive",
-          onPress: async () => {
-            await logout();
+  const handleLogout = async () => {
+    if (Platform.OS === "web") {
+      const confirmLogout = window.confirm(
+        "Konfirmasi Keluar\n\nApakah Anda yakin ingin keluar dari akun ini?",
+      );
+      if (confirmLogout) {
+        await logout();
+      }
+    } else {
+      Alert.alert(
+        "Konfirmasi Keluar",
+        "Apakah Anda yakin ingin keluar dari akun ini?",
+        [
+          { text: "Batal", style: "cancel" },
+          {
+            text: "Ya, Keluar",
+            style: "destructive",
+            onPress: async () => {
+              await logout();
+            },
           },
-        },
-      ],
-    );
+        ],
+      );
+    }
   };
 
   return (
@@ -30,7 +47,10 @@ export default function ProfileScreen() {
         <View style={styles.profileInfo}>
           <View style={styles.avatarContainer}>
             {user?.photoBase64 ? (
-              <Image source={{ uri: user.photoBase64 }} style={styles.avatarImage} />
+              <Image
+                source={{ uri: user.photoBase64 }}
+                style={styles.avatarImage}
+              />
             ) : (
               <Ionicons name="person" size={40} color="#007AFF" />
             )}

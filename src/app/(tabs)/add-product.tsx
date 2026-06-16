@@ -1,47 +1,81 @@
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { db } from '../../config/firebase';
-import { useAuth } from '../../context/AuthContext';
+} from "react-native";
+import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
-const CATEGORIES = ['Buku', 'Elektronik', 'Jasa', 'Makanan', 'Pakaian', 'Kos & Kontrak', 'Mainan', 'Lainnya'];
-const CONDITIONS = ['Baru', 'Bekas - Sangat Baik', 'Bekas - Baik', 'Bekas - Cukup'];
+const CATEGORIES = [
+  "Buku",
+  "Elektronik",
+  "Jasa",
+  "Makanan",
+  "Pakaian",
+  "Kos & Kontrakan",
+  "Mainan",
+  "Lainnya",
+];
+const CONDITIONS = ["Baru", "Bekas"];
+
+// Warna tema sesuai desain HTML
+const COLORS = {
+  primary: "#004ac6",
+  primaryContainer: "#2563eb",
+  surface: "#f8f9ff",
+  surfaceContainerLow: "#eff4ff",
+  surfaceContainer: "#e5eeff",
+  onSurface: "#0b1c30",
+  onSurfaceVariant: "#434655",
+  outline: "#737686",
+  outlineVariant: "#c3c6d7",
+  white: "#ffffff",
+  error: "#ba1a1a",
+};
 
 export default function AddProductScreen() {
   const { user } = useAuth();
   const router = useRouter();
 
-  const [title, setTitle] = useState('');
-  const [price, setPrice] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [condition, setCondition] = useState('');
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [condition, setCondition] = useState("Baru");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showConditionModal, setShowConditionModal] = useState(false);
 
   // Pilih foto dari galeri
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Izin Diperlukan', 'Aplikasi membutuhkan izin akses galeri foto.');
+    if (status !== "granted") {
+      if (Platform.OS === "web") {
+        window.alert(
+          "Izin Diperlukan\n\nAplikasi membutuhkan izin akses galeri foto.",
+        );
+      } else {
+        Alert.alert(
+          "Izin Diperlukan",
+          "Aplikasi membutuhkan izin akses galeri foto.",
+        );
+      }
       return;
     }
 
@@ -49,8 +83,8 @@ export default function AddProductScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.4,          // kompres otomatis ke 40%
-      base64: true,           // dapatkan base64 untuk disimpan ke Firestore
+      quality: 0.4,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -60,63 +94,135 @@ export default function AddProductScreen() {
   };
 
   const resetForm = () => {
-    setTitle('');
-    setPrice('');
-    setDescription('');
-    setCategory('');
-    setCondition('');
+    setTitle("");
+    setPrice("");
+    setStock("");
+    setDescription("");
+    setCategory("");
+    setCondition("Baru");
     setImageUri(null);
     setImageBase64(null);
   };
 
   const handleSubmit = async () => {
     if (!title || !price || !description || !category || !condition) {
-      Alert.alert('Form Belum Lengkap', 'Mohon isi semua field yang diperlukan.');
+      if (Platform.OS === "web") {
+        window.alert(
+          "Form Belum Lengkap\n\nMohon isi semua field yang diperlukan.",
+        );
+      } else {
+        Alert.alert(
+          "Form Belum Lengkap",
+          "Mohon isi semua field yang diperlukan.",
+        );
+      }
       return;
     }
     if (!imageBase64) {
-      Alert.alert('Foto Belum Ada', 'Mohon pilih foto produk terlebih dahulu.');
+      if (Platform.OS === "web") {
+        window.alert(
+          "Foto Belum Ada\n\nMohon pilih foto produk terlebih dahulu.",
+        );
+      } else {
+        Alert.alert(
+          "Foto Belum Ada",
+          "Mohon pilih foto produk terlebih dahulu.",
+        );
+      }
       return;
     }
 
-    const priceNum = parseInt(price.replace(/\D/g, ''), 10);
+    const priceNum = parseInt(price.replace(/\D/g, ""), 10);
     if (isNaN(priceNum) || priceNum <= 0) {
-      Alert.alert('Harga Tidak Valid', 'Masukkan harga yang valid.');
+      if (Platform.OS === "web") {
+        window.alert("Harga Tidak Valid\n\nMasukkan harga yang valid.");
+      } else {
+        Alert.alert("Harga Tidak Valid", "Masukkan harga yang valid.");
+      }
       return;
     }
 
-    setIsLoading(true);
-    try {
-      await addDoc(collection(db, 'products'), {
-        title: title.trim(),
-        price: priceNum,
-        description: description.trim(),
-        category,
-        condition,
-        imageBase64: `data:image/jpeg;base64,${imageBase64}`,
-        sellerId: user!.id,
-        sellerName: user!.name,
-        sellerPhone: user!.phone || '',
-        sellerNim: user!.nim || '',
-        status: 'active',
-        createdAt: serverTimestamp(),
-      });
+    const stockNum = stock ? parseInt(stock, 10) : 1;
 
-      Alert.alert('Berhasil! 🎉', 'Produkmu sudah diposting dan bisa dilihat oleh mahasiswa ITK lainnya.', [
-        { text: 'OK', onPress: resetForm },
-      ]);
-    } catch (error) {
-      console.error('Error posting product:', error);
-      Alert.alert('Gagal Posting', 'Terjadi kesalahan. Silakan coba lagi.');
-    } finally {
-      setIsLoading(false);
+    // Konfirmasi sebelum posting
+    const doPost = async () => {
+      setIsLoading(true);
+      try {
+        await addDoc(collection(db, "products"), {
+          title: title.trim(),
+          price: priceNum,
+          stock: stockNum,
+          description: description.trim(),
+          category,
+          condition,
+          imageBase64: `data:image/jpeg;base64,${imageBase64}`,
+          sellerId: user!.id,
+          sellerName: user!.name,
+          sellerPhone: user!.phone || "",
+          sellerNim: user!.nim || "",
+          sellerPhoto: user!.photoBase64 || null,
+          status: "active",
+          createdAt: serverTimestamp(),
+        });
+
+        if (Platform.OS === "web") {
+          window.alert(
+            "Berhasil! 🎉\n\nProdukmu sudah diposting dan bisa dilihat oleh mahasiswa ITK lainnya.",
+          );
+          resetForm();
+          router.replace("/(tabs)");
+        } else {
+          Alert.alert(
+            "Berhasil! 🎉",
+            "Produkmu sudah diposting dan bisa dilihat oleh mahasiswa ITK lainnya.",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  resetForm();
+                  router.replace("/(tabs)");
+                },
+              },
+            ],
+          );
+        }
+      } catch (error) {
+        console.error("Error posting product:", error);
+        if (Platform.OS === "web") {
+          window.alert(
+            "Gagal Posting\n\nTerjadi kesalahan. Silakan coba lagi.",
+          );
+        } else {
+          Alert.alert("Gagal Posting", "Terjadi kesalahan. Silakan coba lagi.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Konfirmasi Posting\n\nApakah Anda yakin ingin memposting barang ini?",
+      );
+      if (confirmed) doPost();
+    } else {
+      Alert.alert(
+        "Konfirmasi Posting",
+        "Apakah Anda yakin ingin memposting barang ini?",
+        [
+          { text: "Batal", style: "cancel" },
+          { text: "Post Barang", onPress: doPost },
+        ],
+      );
     }
   };
 
   // Format harga dengan pemisah ribuan
   const handlePriceChange = (text: string) => {
-    const digits = text.replace(/\D/g, '');
-    const formatted = digits ? parseInt(digits, 10).toLocaleString('id-ID') : '';
+    const digits = text.replace(/\D/g, "");
+    const formatted = digits
+      ? parseInt(digits, 10).toLocaleString("id-ID")
+      : "";
     setPrice(formatted);
   };
 
@@ -124,12 +230,18 @@ export default function AddProductScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.unauthContainer}>
-          <Ionicons name="cart-outline" size={100} color="#CCCCCC" />
+          <View style={styles.unauthIconWrapper}>
+            <Ionicons name="cart-outline" size={60} color={COLORS.primary} />
+          </View>
           <Text style={styles.unauthTitle}>Mulai Berjualan!</Text>
           <Text style={styles.unauthSubtitle}>
-            Anda harus masuk atau mendaftar terlebih dahulu sebelum bisa menjual produk.
+            Anda harus masuk atau mendaftar terlebih dahulu sebelum bisa menjual
+            produk.
           </Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/login')}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push("/login")}
+          >
             <Text style={styles.primaryButtonText}>Masuk</Text>
           </TouchableOpacity>
         </View>
@@ -137,152 +249,265 @@ export default function AddProductScreen() {
     );
   }
 
-  const isFormValid = title && price && description && category && condition && imageBase64;
+  const isFormValid =
+    title && price && description && category && condition && imageBase64;
 
   return (
     <>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Jual Barang</Text>
-          <Text style={styles.headerSubtitle}>Tawarkan barangmu ke mahasiswa ITK lainnya</Text>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.appBar}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.closeButton}
+          >
+            <Ionicons name="close" size={24} color={COLORS.onSurface} />
+          </TouchableOpacity>
+          <Text style={styles.appBarTitle}>Jual Barang</Text>
+          <Text style={styles.helpText}>Bantuan</Text>
         </View>
 
-        {/* Upload Foto */}
-        <TouchableOpacity style={styles.imageUpload} onPress={pickImage} activeOpacity={0.7}>
-          {imageUri ? (
-            <>
-              <Image source={{ uri: imageUri }} style={styles.previewImage} />
-              <View style={styles.changePhotoOverlay}>
-                <Ionicons name="camera" size={20} color="#FFF" />
-                <Text style={styles.changePhotoText}>Ganti Foto</Text>
+        {/* Foto Produk */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Foto Produk</Text>
+            <Text style={styles.sectionHint}>Maks. 1 foto</Text>
+          </View>
+          <View style={styles.photoGrid}>
+            {/* Tombol Tambah Foto */}
+            <TouchableOpacity
+              style={styles.addPhotoBtn}
+              onPress={pickImage}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="camera" size={26} color={COLORS.primary} />
+              <Text style={styles.addPhotoBtnText}>Tambah</Text>
+            </TouchableOpacity>
+
+            {/* Preview Foto */}
+            {imageUri ? (
+              <View style={styles.photoThumbnail}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.thumbnailImage}
+                />
+                <TouchableOpacity
+                  style={styles.deletePhotoBtn}
+                  onPress={() => {
+                    setImageUri(null);
+                    setImageBase64(null);
+                  }}
+                >
+                  <Ionicons name="trash" size={12} color={COLORS.white} />
+                </TouchableOpacity>
               </View>
-            </>
-          ) : (
-            <>
-              <Ionicons name="camera-outline" size={40} color="#007AFF" />
-              <Text style={styles.imageUploadText}>Upload Foto Produk</Text>
-              <Text style={styles.imageUploadHint}>Tap untuk pilih dari galeri</Text>
-            </>
-          )}
-        </TouchableOpacity>
+            ) : (
+              <View style={[styles.photoThumbnail, styles.photoThumbnailEmpty]}>
+                <Ionicons
+                  name="image-outline"
+                  size={24}
+                  color={COLORS.outlineVariant}
+                />
+              </View>
+            )}
 
-        {/* Nama Produk */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Nama Produk <Text style={styles.required}>*</Text></Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Cth: Buku Kalkulus Purcell Edisi 9"
-            value={title}
-            onChangeText={setTitle}
-            maxLength={100}
-          />
-        </View>
-
-        {/* Harga */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Harga (Rp) <Text style={styles.required}>*</Text></Text>
-          <View style={styles.priceContainer}>
-            <Text style={styles.currencyPrefix}>Rp</Text>
-            <TextInput
-              style={styles.priceInput}
-              placeholder="0"
-              keyboardType="numeric"
-              value={price}
-              onChangeText={handlePriceChange}
-            />
+            {/* Placeholder slot kosong */}
+            <View
+              style={[
+                styles.photoThumbnail,
+                styles.photoThumbnailEmpty,
+                { opacity: 0.4 },
+              ]}
+            >
+              <Ionicons
+                name="image-outline"
+                size={24}
+                color={COLORS.outlineVariant}
+              />
+            </View>
           </View>
         </View>
 
-        {/* Kategori */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Kategori <Text style={styles.required}>*</Text></Text>
-          <TouchableOpacity style={styles.dropdown} onPress={() => setShowCategoryModal(true)}>
-            <Text style={[styles.dropdownText, !category && styles.dropdownPlaceholder]}>
-              {category || 'Pilih Kategori'}
-            </Text>
-            <Ionicons name="chevron-down" size={20} color="#666" />
+        {/* Form */}
+        <View style={styles.form}>
+          {/* Nama Barang */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Nama Barang</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Contoh: Kalkulator Casio fx-991EX"
+              placeholderTextColor={COLORS.outline}
+              value={title}
+              onChangeText={setTitle}
+              maxLength={100}
+            />
+          </View>
+
+          {/* Harga */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Harga</Text>
+            <View style={styles.priceContainer}>
+              <Text style={styles.currencyPrefix}>Rp</Text>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="0"
+                placeholderTextColor={COLORS.outline}
+                keyboardType="numeric"
+                value={price}
+                onChangeText={handlePriceChange}
+              />
+            </View>
+          </View>
+
+          {/* Stok */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Stok Barang</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Contoh: 1"
+              placeholderTextColor={COLORS.outline}
+              keyboardType="numeric"
+              value={stock}
+              onChangeText={setStock}
+            />
+          </View>
+
+          {/* Kategori */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Kategori</Text>
+            <TouchableOpacity
+              style={styles.dropdown}
+              onPress={() => setShowCategoryModal(true)}
+            >
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !category && styles.dropdownPlaceholder,
+                ]}
+              >
+                {category || "Pilih Kategori"}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={COLORS.outline} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Kondisi — Toggle Chips */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Kondisi</Text>
+            <View style={styles.conditionRow}>
+              {CONDITIONS.map((cond) => {
+                const isActive = condition === cond;
+                return (
+                  <TouchableOpacity
+                    key={cond}
+                    style={[
+                      styles.conditionChip,
+                      isActive && styles.conditionChipActive,
+                    ]}
+                    onPress={() => setCondition(cond)}
+                    activeOpacity={0.7}
+                  >
+                    {isActive && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color={COLORS.white}
+                        style={{ marginRight: 6 }}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        styles.conditionChipText,
+                        isActive && styles.conditionChipTextActive,
+                      ]}
+                    >
+                      {cond}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Deskripsi */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Deskripsi</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Jelaskan detail barang, kelengkapan, dan alasan dijual..."
+              placeholderTextColor={COLORS.outline}
+              multiline
+              numberOfLines={5}
+              value={description}
+              onChangeText={setDescription}
+              textAlignVertical="top"
+            />
+          </View>
+
+          {/* Tombol Post */}
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (!isFormValid || isLoading) && styles.submitButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={!isFormValid || isLoading}
+            activeOpacity={0.85}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <>
+                <Text style={styles.submitButtonText}>Post Barang</Text>
+                <Ionicons
+                  name="send"
+                  size={18}
+                  color={COLORS.white}
+                  style={{ marginLeft: 8 }}
+                />
+              </>
+            )}
           </TouchableOpacity>
         </View>
-
-        {/* Kondisi */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Kondisi <Text style={styles.required}>*</Text></Text>
-          <TouchableOpacity style={styles.dropdown} onPress={() => setShowConditionModal(true)}>
-            <Text style={[styles.dropdownText, !condition && styles.dropdownPlaceholder]}>
-              {condition || 'Pilih Kondisi Barang'}
-            </Text>
-            <Ionicons name="chevron-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Deskripsi */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Deskripsi <Text style={styles.required}>*</Text></Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Jelaskan kondisi barang, kelengkapan, cara bertemu, dll."
-            multiline
-            numberOfLines={5}
-            value={description}
-            onChangeText={setDescription}
-            textAlignVertical="top"
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.submitButton, (!isFormValid || isLoading) && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={!isFormValid || isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
-              <Text style={styles.submitButtonText}>Posting Produk</Text>
-            </>
-          )}
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Modal Kategori */}
       <Modal visible={showCategoryModal} transparent animationType="slide">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowCategoryModal(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCategoryModal(false)}
+        >
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Pilih Kategori</Text>
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
                 key={cat}
-                style={[styles.modalOption, category === cat && styles.modalOptionSelected]}
-                onPress={() => { setCategory(cat); setShowCategoryModal(false); }}
+                style={[
+                  styles.modalOption,
+                  category === cat && styles.modalOptionSelected,
+                ]}
+                onPress={() => {
+                  setCategory(cat);
+                  setShowCategoryModal(false);
+                }}
               >
-                <Text style={[styles.modalOptionText, category === cat && styles.modalOptionTextSelected]}>
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    category === cat && styles.modalOptionTextSelected,
+                  ]}
+                >
                   {cat}
                 </Text>
-                {category === cat && <Ionicons name="checkmark" size={20} color="#007AFF" />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Modal Kondisi */}
-      <Modal visible={showConditionModal} transparent animationType="slide">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowConditionModal(false)}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Kondisi Barang</Text>
-            {CONDITIONS.map((cond) => (
-              <TouchableOpacity
-                key={cond}
-                style={[styles.modalOption, condition === cond && styles.modalOptionSelected]}
-                onPress={() => { setCondition(cond); setShowConditionModal(false); }}
-              >
-                <Text style={[styles.modalOptionText, condition === cond && styles.modalOptionTextSelected]}>
-                  {cond}
-                </Text>
-                {condition === cond && <Ionicons name="checkmark" size={20} color="#007AFF" />}
+                {category === cat && (
+                  <Ionicons name="checkmark" size={20} color={COLORS.primary} />
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -295,238 +520,337 @@ export default function AddProductScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   content: {
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 48,
+    paddingBottom: 60,
   },
-  header: {
-    marginBottom: 24,
+
+  // AppBar
+  appBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 56,
+    paddingBottom: 16,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.outlineVariant,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 6,
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.surfaceContainer,
   },
-  headerSubtitle: {
+  appBarTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.onSurface,
+    letterSpacing: -0.4,
+  },
+  helpText: {
     fontSize: 14,
-    color: '#666666',
+    fontWeight: "600",
+    color: COLORS.primary,
   },
-  imageUpload: {
-    width: '100%',
-    height: 180,
-    backgroundColor: '#F0F8FF',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#007AFF',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    overflow: 'hidden',
+
+  // Sections
+  section: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 8,
   },
-  previewImage: {
-    width: '100%',
-    height: '100%',
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginBottom: 12,
   },
-  changePhotoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 8,
-    gap: 6,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.onSurface,
   },
-  changePhotoText: {
-    color: '#FFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  imageUploadText: {
-    marginTop: 10,
-    fontSize: 15,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  imageUploadHint: {
-    marginTop: 4,
+  sectionHint: {
     fontSize: 12,
-    color: '#999',
+    color: COLORS.outline,
+    letterSpacing: 0.1,
+  },
+
+  // Photo Grid
+  photoGrid: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  addPhotoBtn: {
+    width: 90,
+    aspectRatio: 1,
+    borderWidth: 2,
+    borderColor: COLORS.outlineVariant,
+    borderStyle: "dashed",
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceContainerLow,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addPhotoBtnText: {
+    fontSize: 11,
+    color: COLORS.onSurfaceVariant,
+    marginTop: 4,
+    fontWeight: "500",
+  },
+  photoThumbnail: {
+    width: 90,
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: COLORS.surfaceContainer,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  photoThumbnailEmpty: {
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+    backgroundColor: COLORS.surfaceContainerLow,
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%",
+  },
+  deletePhotoBtn: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(186, 26, 26, 0.85)",
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // Form
+  form: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   formGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: "600",
+    color: COLORS.onSurface,
     marginBottom: 8,
   },
-  required: {
-    color: '#FF3B30',
-  },
   input: {
-    backgroundColor: '#F5F7FA',
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    borderRadius: 12,
+    width: "100%",
+    height: 48,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+    borderRadius: 12,
     fontSize: 16,
-    color: '#333333',
+    color: COLORS.onSurface,
   },
   textArea: {
-    height: 120,
-    paddingTop: 14,
+    height: 100,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: COLORS.outlineVariant,
     borderRadius: 12,
     paddingHorizontal: 16,
+    height: 48,
   },
   currencyPrefix: {
     fontSize: 16,
-    color: '#555',
-    fontWeight: '600',
+    fontWeight: "600",
+    color: COLORS.onSurface,
     marginRight: 8,
   },
   priceInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333333',
-    paddingVertical: 14,
+    color: COLORS.onSurface,
+    height: "100%",
   },
   dropdown: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: COLORS.outlineVariant,
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    height: 48,
   },
   dropdownText: {
     fontSize: 16,
-    color: '#333333',
+    color: COLORS.onSurface,
   },
   dropdownPlaceholder: {
-    color: '#AAAAAA',
+    color: COLORS.outline,
   },
+
+  // Condition Chips
+  conditionRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  conditionChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+    backgroundColor: COLORS.white,
+  },
+  conditionChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  conditionChipText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.onSurfaceVariant,
+  },
+  conditionChipTextActive: {
+    color: COLORS.white,
+  },
+
+  // Submit Button
   submitButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.primary,
+    height: 56,
+    borderRadius: 16,
     marginTop: 8,
-    shadowColor: '#007AFF',
+    marginBottom: 16,
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   submitButtonDisabled: {
-    backgroundColor: '#A0CFFF',
+    backgroundColor: "#a0b4e0",
     shadowOpacity: 0,
     elevation: 0,
   },
   submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: COLORS.white,
+    fontSize: 17,
+    fontWeight: "bold",
+    letterSpacing: -0.2,
   },
-  // Unauth
+
+  // Unauth Screen
   unauthContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 24,
+    backgroundColor: COLORS.surface,
+  },
+  unauthIconWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.surfaceContainerLow,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
   },
   unauthTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginTop: 16,
+    fontWeight: "bold",
+    color: COLORS.onSurface,
     marginBottom: 8,
   },
   unauthSubtitle: {
-    fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
+    fontSize: 15,
+    color: COLORS.onSurfaceVariant,
+    textAlign: "center",
     marginBottom: 32,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
-    width: '100%',
+    backgroundColor: COLORS.primary,
+    width: "100%",
     paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
+    borderRadius: 14,
+    alignItems: "center",
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
+
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
   },
   modalSheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
   modalHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: COLORS.outlineVariant,
     borderRadius: 2,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginBottom: 16,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
+    fontWeight: "bold",
+    color: COLORS.onSurface,
     marginBottom: 16,
   },
   modalOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   modalOptionSelected: {
-    backgroundColor: '#EEF5FF',
+    backgroundColor: COLORS.surfaceContainerLow,
   },
   modalOptionText: {
     fontSize: 16,
-    color: '#333333',
+    color: COLORS.onSurface,
   },
   modalOptionTextSelected: {
-    color: '#007AFF',
-    fontWeight: '600',
+    color: COLORS.primary,
+    fontWeight: "600",
   },
 });

@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -43,6 +44,16 @@ export default function HomeScreen() {
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Karena menggunakan onSnapshot, data sebenarnya sudah real-time.
+    // Timeout ini memberikan efek visual 'refresh' bagi pengguna.
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   useEffect(() => {
     // Query tanpa orderBy agar tidak perlu composite index
@@ -273,6 +284,14 @@ export default function HomeScreen() {
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmpty}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#2563eb"]}
+              tintColor="#2563eb"
+            />
+          }
         />
       )}
     </View>

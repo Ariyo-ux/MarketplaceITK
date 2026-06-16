@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
 export default function RegisterScreen() {
@@ -24,7 +24,7 @@ export default function RegisterScreen() {
     if (!email.toLowerCase().endsWith(ITK_DOMAIN)) {
       Alert.alert(
         "Email Tidak Valid",
-        "Hanya email kampus ITK yang diizinkan.\nGunakan format: nama@student.itk.ac.id"
+        "Hanya email kampus ITK yang diizinkan.\nGunakan format: NIM@student.itk.ac.id"
       );
       return;
     }
@@ -49,7 +49,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
@@ -126,8 +126,8 @@ export default function RegisterScreen() {
             </View>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.registerButton, (!name || !email || !whatsapp || !password || isLoading) && styles.registerButtonDisabled]} 
+          <TouchableOpacity
+            style={[styles.registerButton, (!name || !email || !whatsapp || !password || isLoading) && styles.registerButtonDisabled]}
             onPress={handleRegister}
             disabled={!name || !email || !whatsapp || !password || isLoading}
           >
