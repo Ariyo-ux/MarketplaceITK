@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 
 export default function ProfileScreen() {
@@ -29,7 +29,11 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <View style={styles.profileInfo}>
           <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={40} color="#007AFF" />
+            {user?.photoBase64 ? (
+              <Image source={{ uri: user.photoBase64 }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={40} color="#007AFF" />
+            )}
           </View>
           <View style={styles.textInfo}>
             <Text style={styles.name}>{user?.name ?? "Tamu"}</Text>
@@ -142,6 +146,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 3,
     borderColor: "rgba(255, 255, 255, 0.3)",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 40,
   },
   textInfo: {
     marginLeft: 20,

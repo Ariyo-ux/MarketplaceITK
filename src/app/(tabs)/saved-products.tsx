@@ -1,4 +1,6 @@
-import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const SAVED_ITEMS = [
   {
@@ -10,11 +12,18 @@ const SAVED_ITEMS = [
 ];
 
 export default function SavedProductsScreen() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Barang Disimpan</Text>
-        <Text style={styles.subtitle}>{SAVED_ITEMS.length} barang tersimpan</Text>
+        <TouchableOpacity onPress={() => router.push('/profile')} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.title}>Barang Disimpan</Text>
+          <Text style={styles.subtitle}>{SAVED_ITEMS.length} barang tersimpan</Text>
+        </View>
       </View>
 
       <FlatList
@@ -42,12 +51,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F7FA',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
+  },
+  backButton: {
+    marginRight: 16,
   },
   title: {
     fontSize: 24,

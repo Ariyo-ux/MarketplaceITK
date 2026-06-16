@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type MenuItem = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -8,30 +9,52 @@ type MenuItem = {
 };
 
 export default function AccountSettingsScreen() {
+  const handleMenuPress = (label: string) => {
+    if (label === 'Edit Profil') {
+      router.push('/(tabs)/edit-profile');
+      return;
+    }
+    Alert.alert(
+      'Fitur Belum Tersedia',
+      `Fitur "${label}" saat ini masih dalam tahap pengembangan.`
+    );
+  };
+
   const menuItems: MenuItem[] = [
     {
       icon: 'person-outline',
       label: 'Edit Profil',
+      onPress: () => handleMenuPress('Edit Profil'),
     },
     {
       icon: 'lock-closed-outline',
       label: 'Ubah Password',
+      onPress: () => handleMenuPress('Ubah Password'),
     },
     {
       icon: 'notifications-outline',
       label: 'Notifikasi',
+      onPress: () => handleMenuPress('Notifikasi'),
     },
     {
       icon: 'moon-outline',
       label: 'Mode Gelap',
+      onPress: () => handleMenuPress('Mode Gelap'),
     },
   ];
+
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Pengaturan Akun</Text>
-        <Text style={styles.subtitle}>Kelola informasi akun Anda</Text>
+        <TouchableOpacity onPress={() => router.push('/profile')} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.title}>Pengaturan Akun</Text>
+          <Text style={styles.subtitle}>Kelola informasi akun Anda</Text>
+        </View>
       </View>
 
       <View style={styles.menuContainer}>
@@ -61,12 +84,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F7FA',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
+  },
+  backButton: {
+    marginRight: 16,
   },
   title: {
     fontSize: 24,

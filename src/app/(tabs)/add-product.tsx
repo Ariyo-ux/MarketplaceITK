@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -13,12 +14,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
 
-const CATEGORIES = ['Buku', 'Elektronik', 'Jasa', 'Makanan', 'Pakaian', 'Kos & Kontrak', 'Lainnya'];
+const CATEGORIES = ['Buku', 'Elektronik', 'Jasa', 'Makanan', 'Pakaian', 'Kos & Kontrak', 'Mainan', 'Lainnya'];
 const CONDITIONS = ['Baru', 'Bekas - Sangat Baik', 'Bekas - Baik', 'Bekas - Cukup'];
 
 export default function AddProductScreen() {
@@ -143,7 +143,7 @@ export default function AddProductScreen() {
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Jual Barang Baru</Text>
+          <Text style={styles.headerTitle}>Jual Barang</Text>
           <Text style={styles.headerSubtitle}>Tawarkan barangmu ke mahasiswa ITK lainnya</Text>
         </View>
 

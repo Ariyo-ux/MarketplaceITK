@@ -99,6 +99,13 @@ export default function TabLayout() {
           title: "Pengaturan Akun",
         }}
       />
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null,
+          title: "Edit Profil",
+        }}
+      />
     </Tabs>
   );
 }

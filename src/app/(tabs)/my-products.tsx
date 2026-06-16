@@ -84,8 +84,13 @@ export default function MyProductsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Produk Saya</Text>
-        <Text style={styles.subtitle}>{activeCount} produk aktif</Text>
+        <TouchableOpacity onPress={() => router.push('/profile')} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.title}>Produk Saya</Text>
+          <Text style={styles.subtitle}>{activeCount} produk aktif</Text>
+        </View>
       </View>
 
       {isLoading ? (
@@ -137,12 +142,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F7FA',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
+  },
+  backButton: {
+    marginRight: 16,
   },
   title: {
     fontSize: 24,

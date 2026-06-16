@@ -6,6 +6,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -32,7 +33,7 @@ export default function LoginScreen() {
     if (!email.toLowerCase().endsWith(ITK_DOMAIN)) {
       Alert.alert(
         "Email Tidak Valid",
-        "Hanya email kampus ITK yang diizinkan.\nGunakan format: nama@student.itk.ac.id"
+        "Hanya email kampus ITK yang diizinkan.\nGunakan format: nama@student.itk.ac.id",
       );
       return;
     }
@@ -74,7 +75,10 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.logoContainer}>
           <Image
             source={require("../../assets/images/logo.png")}
@@ -157,7 +161,9 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          <Text style={styles.emailHint}>Hanya untuk mahasiswa ITK (@student.itk.ac.id)</Text>
+          <Text style={styles.emailHint}>
+            Hanya untuk mahasiswa ITK (@student.itk.ac.id)
+          </Text>
         </View>
 
         <View style={styles.footer}>
@@ -166,7 +172,7 @@ export default function LoginScreen() {
             <Text style={styles.registerText}>Daftar Sekarang</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -190,7 +196,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 10,
   },

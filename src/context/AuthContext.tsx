@@ -17,6 +17,7 @@ export type User = {
   prodi?: string;
   angkatan?: string;
   phone?: string;
+  photoBase64?: string;
 };
 
 type AuthContextType = {
@@ -30,6 +31,7 @@ type AuthContextType = {
     password?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               prodi: userData.prodi || "",
               angkatan: userData.angkatan || "",
               phone: userData.phone || "",
+              photoBase64: userData.photoBase64 || "",
             });
           } else {
             // Fallback jika tidak ada di Firestore
@@ -215,6 +218,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  // Update Profile
+  const updateProfile = async (data: Partial<User>) => {
+    if (!user) throw new Error("Tidak ada pengguna yang login.");
+
+    // Update Firestore
+    const docRef = doc(db, "users", user.id);
+    await setDoc(docRef, data, { merge: true });
+
+    // Update local state
+    setUser((prev) => (prev ? { ...prev, ...data } : null));
+  };
+
   // Logout
   const logout = async () => {
     if (isConfigured) {
@@ -225,7 +240,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, login, register, logout, updateProfile }}
+    >
       {!isLoading && children}
     </AuthContext.Provider>
   );

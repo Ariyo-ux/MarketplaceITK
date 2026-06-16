@@ -1,7 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApp, getApps, initializeApp } from "firebase/app";
-// @ts-ignore – getReactNativePersistence type definition hilang di firebase v12, tapi berfungsi di runtime
-import { getReactNativePersistence, initializeAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -23,11 +21,7 @@ if (isConfigured) {
 }
 
 // Gunakan initializeAuth + AsyncStorage agar sesi login tersimpan saat app ditutup
-const auth = app
-  ? initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    })
-  : ({} as any);
+const auth = app ? getAuth(app) : ({} as any);
 
 const db = app ? getFirestore(app) : ({} as any);
 

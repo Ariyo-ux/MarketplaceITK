@@ -1,19 +1,21 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { deleteDoc, doc, getDoc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { db } from '../../config/firebase';
+} from "react-native";
+import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 type Product = {
   id: string;
@@ -27,26 +29,47 @@ type Product = {
   sellerPhone: string;
   sellerNim: string;
   status: string;
+  sellerId?: string;
+  sellerPhotoBase64?: string;
+  stock?: number;
 };
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
   const productId = Array.isArray(id) ? id[0] : id;
 
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isOwner = user?.id === product?.sellerId;
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const docRef = doc(db, 'products', productId);
+        const docRef = doc(db, "products", productId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setProduct({ id: docSnap.id, ...(docSnap.data() as Omit<Product, 'id'>) });
+          const productData = docSnap.data() as Omit<Product, "id">;
+          let sellerPhotoBase64 = undefined;
+
+          if (productData.sellerId) {
+            try {
+              const userRef = doc(db, "users", productData.sellerId);
+              const userSnap = await getDoc(userRef);
+              if (userSnap.exists()) {
+                sellerPhotoBase64 = userSnap.data().photoBase64;
+              }
+            } catch (err) {
+              console.log("Error fetching user photo:", err);
+            }
+          }
+
+          setProduct({ id: docSnap.id, ...productData, sellerPhotoBase64 });
         }
       } catch (error) {
-        console.error('Error fetching product:', error);
+        console.error("Error fetching product:", error);
       } finally {
         setIsLoading(false);
       }
@@ -54,30 +77,144 @@ export default function ProductDetailScreen() {
     fetchProduct();
   }, [productId]);
 
+  const handleToggleStatus = async () => {
+    if (!product) return;
+    const newStatus = product.status === "active" ? "sold" : "active";
+    const actionText = newStatus === "active" ? "Tersedia" : "Tidak Tersedia";
+
+    const executeToggle = async () => {
+      try {
+        setIsLoading(true);
+        const docRef = doc(db, "products", product.id);
+        await updateDoc(docRef, { status: newStatus });
+        setProduct({ ...product, status: newStatus });
+        if (Platform.OS === "web") {
+          window.alert(`Status berhasil diubah menjadi ${actionText}.`);
+        } else {
+          Alert.alert(
+            "Sukses",
+            `Status berhasil diubah menjadi ${actionText}.`,
+          );
+        }
+      } catch (err) {
+        console.error(err);
+        if (Platform.OS === "web") {
+          window.alert("Gagal mengubah status produk.");
+        } else {
+          Alert.alert("Error", "Gagal mengubah status produk.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        `Ubah status produk menjadi ${actionText}?`,
+      );
+      if (confirmed) {
+        executeToggle();
+      }
+    } else {
+      Alert.alert("Ubah Status", `Ubah status produk menjadi ${actionText}?`, [
+        { text: "Batal", style: "cancel" },
+        { text: "Ya, Ubah", onPress: executeToggle },
+      ]);
+    }
+  };
+
+  const handleDeleteProduct = () => {
+    if (!product) return;
+
+    const executeDelete = async () => {
+      try {
+        setIsLoading(true);
+        const docRef = doc(db, "products", product.id);
+        await deleteDoc(docRef);
+        if (Platform.OS === "web") {
+          window.alert("Produk berhasil dihapus.");
+          router.back();
+        } else {
+          Alert.alert("Sukses", "Produk berhasil dihapus.", [
+            { text: "OK", onPress: () => router.back() },
+          ]);
+        }
+      } catch (err) {
+        console.error(err);
+        if (Platform.OS === "web") {
+          window.alert("Gagal menghapus produk.");
+        } else {
+          Alert.alert("Error", "Gagal menghapus produk.");
+        }
+        setIsLoading(false);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Apakah Anda yakin ingin menghapus produk ini secara permanen?",
+      );
+      if (confirmed) {
+        executeDelete();
+      }
+    } else {
+      Alert.alert(
+        "Hapus Produk",
+        "Apakah Anda yakin ingin menghapus produk ini secara permanen?",
+        [
+          { text: "Batal", style: "cancel" },
+          { text: "Hapus", style: "destructive", onPress: executeDelete },
+        ],
+      );
+    }
+  };
+
   const handleContactSeller = () => {
     if (!product) return;
     const text = `Halo kak ${product.sellerName}, saya tertarik dengan barang '${product.title}' yang dijual di Marketplace ITK. Apakah masih ada?`;
-    const url = `whatsapp://send?text=${encodeURIComponent(text)}&phone=${product.sellerPhone}`;
 
-    Alert.alert(
-      'Hubungi Penjual',
-      'Apakah Anda ingin membuka WhatsApp untuk menghubungi penjual?',
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Ya, Buka WA',
-          onPress: () => {
-            Linking.canOpenURL(url).then((supported) => {
-              if (supported) {
-                Linking.openURL(url);
-              } else {
-                Alert.alert('Gagal', 'Aplikasi WhatsApp tidak ditemukan di perangkat ini.');
+    let phone = product.sellerPhone.replace(/\D/g, "");
+    if (phone.startsWith("0")) {
+      phone = "62" + phone.substring(1);
+    }
+
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Apakah Anda ingin membuka WhatsApp untuk menghubungi penjual?",
+      );
+      if (confirmed) {
+        window.open(url, "_blank");
+      }
+    } else {
+      Alert.alert(
+        "Hubungi Penjual",
+        "Apakah Anda ingin membuka WhatsApp untuk menghubungi penjual?",
+        [
+          { text: "Batal", style: "cancel" },
+          {
+            text: "Ya, Buka WA",
+            onPress: async () => {
+              try {
+                const supported = await Linking.canOpenURL(url);
+                if (supported) {
+                  await Linking.openURL(url);
+                } else {
+                  Alert.alert("Gagal", "Tidak dapat membuka tautan WhatsApp.");
+                }
+              } catch (error) {
+                console.error("Error opening WhatsApp:", error);
+                Alert.alert(
+                  "Error",
+                  "Terjadi kesalahan saat membuka WhatsApp.",
+                );
               }
-            });
+            },
           },
-        },
-      ]
-    );
+        ],
+      );
+    }
   };
 
   if (isLoading) {
@@ -93,7 +230,10 @@ export default function ProductDetailScreen() {
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle-outline" size={60} color="#FF3B30" />
         <Text style={styles.errorText}>Produk tidak ditemukan!</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <Text style={styles.backButtonText}>Kembali</Text>
         </TouchableOpacity>
       </View>
@@ -103,16 +243,25 @@ export default function ProductDetailScreen() {
   return (
     <View style={styles.container}>
       {/* Back button */}
-      <TouchableOpacity style={styles.floatingBack} onPress={() => router.back()}>
+      <TouchableOpacity
+        style={styles.floatingBack}
+        onPress={() => router.back()}
+      >
         <Ionicons name="arrow-back" size={22} color="#333" />
       </TouchableOpacity>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Image source={{ uri: product.imageBase64 }} style={styles.image} resizeMode="cover" />
+        <Image
+          source={{ uri: product.imageBase64 }}
+          style={styles.image}
+          resizeMode="cover"
+        />
 
         <View style={styles.content}>
           <View style={styles.priceRow}>
-            <Text style={styles.price}>Rp {product.price.toLocaleString('id-ID')}</Text>
+            <Text style={styles.price}>
+              Rp {product.price.toLocaleString("id-ID")}
+            </Text>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{product.category}</Text>
             </View>
@@ -128,9 +277,18 @@ export default function ProductDetailScreen() {
               <Text style={styles.infoValue}>{product.condition}</Text>
             </View>
             <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Stok</Text>
+              <Text style={styles.infoValue}>{product.stock ?? 1}</Text>
+            </View>
+            <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Status</Text>
-              <Text style={[styles.infoValue, product.status === 'sold' && { color: '#D32F2F' }]}>
-                {product.status === 'active' ? 'Tersedia' : 'Terjual'}
+              <Text
+                style={[
+                  styles.infoValue,
+                  product.status === "sold" && { color: "#D32F2F" },
+                ]}
+              >
+                {product.status === "active" ? "Tersedia" : "Tidak Tersedia"}
               </Text>
             </View>
           </View>
@@ -139,12 +297,20 @@ export default function ProductDetailScreen() {
 
           <View style={styles.sellerSection}>
             <View style={styles.sellerAvatar}>
-              <Ionicons name="person" size={24} color="#007AFF" />
+              {product.sellerPhotoBase64 ? (
+                <Image
+                  source={{ uri: product.sellerPhotoBase64 }}
+                  style={styles.sellerAvatarImage}
+                />
+              ) : (
+                <Ionicons name="person" size={24} color="#007AFF" />
+              )}
             </View>
             <View style={styles.sellerInfo}>
               <Text style={styles.sellerName}>{product.sellerName}</Text>
               <Text style={styles.sellerRole}>
-                {product.sellerNim ? `NIM: ${product.sellerNim} · ` : ''}Mahasiswa ITK
+                {product.sellerNim ? `NIM: ${product.sellerNim} · ` : ""}
+                Mahasiswa ITK
               </Text>
             </View>
           </View>
@@ -159,20 +325,70 @@ export default function ProductDetailScreen() {
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.contactButton, product.status === 'sold' && styles.contactButtonDisabled]}
-          onPress={handleContactSeller}
-          disabled={product.status === 'sold'}
-        >
-          {product.status === 'sold' ? (
-            <Text style={styles.contactButtonText}>Produk Sudah Terjual</Text>
-          ) : (
-            <>
-              <Ionicons name="logo-whatsapp" size={22} color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.contactButtonText}>Hubungi Penjual via WA</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {isOwner ? (
+          <View style={styles.ownerActions}>
+            <TouchableOpacity
+              style={[styles.ownerButton, styles.statusButton]}
+              onPress={handleToggleStatus}
+            >
+              <Ionicons
+                name={
+                  product.status === "active"
+                    ? "close-circle-outline"
+                    : "checkmark-circle-outline"
+                }
+                size={20}
+                color="#007AFF"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.statusButtonText}>
+                {product.status === "active"
+                  ? "Tandai Tidak Tersedia"
+                  : "Tandai Tersedia"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.ownerButton, styles.deleteButton]}
+              onPress={handleDeleteProduct}
+            >
+              <Ionicons
+                name="trash-outline"
+                size={20}
+                color="#FF3B30"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.deleteButtonText}>Hapus</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[
+              styles.contactButton,
+              product.status === "sold" && styles.contactButtonDisabled,
+            ]}
+            onPress={handleContactSeller}
+            disabled={product.status === "sold"}
+          >
+            {product.status === "sold" ? (
+              <Text style={styles.contactButtonText}>
+                Produk Tidak Tersedia
+              </Text>
+            ) : (
+              <>
+                <Ionicons
+                  name="logo-whatsapp"
+                  size={22}
+                  color="#FFFFFF"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.contactButtonText}>
+                  Hubungi Penjual via WA
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -181,178 +397,216 @@ export default function ProductDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   floatingBack: {
-    position: 'absolute',
+    position: "absolute",
     top: 52,
     left: 16,
     zIndex: 10,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 20,
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 4,
   },
   image: {
-    width: '100%',
+    width: "100%",
     height: 300,
-    backgroundColor: '#EAEAEA',
+    backgroundColor: "#EAEAEA",
   },
   content: {
     padding: 20,
     paddingBottom: 110,
   },
   priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   price: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007AFF',
+    fontWeight: "bold",
+    color: "#007AFF",
   },
   badge: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: "#E3F2FD",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   badgeText: {
-    color: '#1976D2',
+    color: "#1976D2",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: "600",
+    color: "#1A1A1A",
     lineHeight: 28,
   },
   divider: {
     height: 1,
-    backgroundColor: '#EEEEEE',
+    backgroundColor: "#EEEEEE",
     marginVertical: 16,
   },
   infoRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   infoItem: {
     flex: 1,
   },
   infoLabel: {
     fontSize: 12,
-    color: '#888888',
+    color: "#888888",
     marginBottom: 4,
   },
   infoValue: {
     fontSize: 14,
-    color: '#333333',
-    fontWeight: '500',
+    color: "#333333",
+    fontWeight: "500",
   },
   sellerSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   sellerAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E3F2FD",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
+    overflow: "hidden",
+  },
+  sellerAvatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 24,
   },
   sellerInfo: {
     flex: 1,
   },
   sellerName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: "600",
+    color: "#333333",
     marginBottom: 2,
   },
   sellerRole: {
     fontSize: 12,
-    color: '#888888',
+    color: "#888888",
   },
   descriptionSection: {
     marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
+    fontWeight: "bold",
+    color: "#1A1A1A",
     marginBottom: 12,
   },
   description: {
     fontSize: 14,
-    color: '#444444',
+    color: "#444444",
     lineHeight: 22,
   },
   bottomBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     padding: 16,
     paddingBottom: 32,
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
+    borderTopColor: "#EEEEEE",
   },
   contactButton: {
-    backgroundColor: '#25D366',
+    backgroundColor: "#25D366",
     borderRadius: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 16,
   },
   contactButtonDisabled: {
-    backgroundColor: '#AAAAAA',
+    backgroundColor: "#AAAAAA",
   },
   contactButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F5F7FA",
     padding: 20,
   },
   errorText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333333',
+    fontWeight: "bold",
+    color: "#333333",
     marginTop: 16,
     marginBottom: 24,
   },
   backButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   backButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: "#FFFFFF",
+    fontWeight: "bold",
     fontSize: 16,
+  },
+  ownerActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  ownerButton: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  statusButton: {
+    backgroundColor: "#EEF5FF",
+    borderColor: "#007AFF",
+  },
+  statusButtonText: {
+    color: "#007AFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  deleteButton: {
+    backgroundColor: "#FFF0F0",
+    borderColor: "#FF3B30",
+  },
+  deleteButtonText: {
+    color: "#FF3B30",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
