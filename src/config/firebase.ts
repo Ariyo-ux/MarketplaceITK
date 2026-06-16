@@ -1,11 +1,11 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
-// @ts-ignore
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getAuth,
-  getReactNativePersistence,
   initializeAuth,
 } from "firebase/auth";
+// @ts-ignore
+import { getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -30,8 +30,10 @@ if (isConfigured) {
 let auth: any = {} as any;
 if (app) {
   try {
+    // Menyiasati error "has no exported member" pada TypeScript di versi Firebase tertentu
+    const { getReactNativePersistence: getRNP } = require('firebase/auth');
     auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
+      persistence: getRNP(AsyncStorage),
     });
   } catch (error: any) {
     if (error.code === "auth/already-initialized") {
