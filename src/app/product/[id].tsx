@@ -32,6 +32,11 @@ type Product = {
   sellerId?: string;
   sellerPhotoBase64?: string;
   stock?: number;
+  location?: {
+    latitude: number;
+    longitude: number;
+    name: string | null;
+  } | null;
 };
 
 export default function ProductDetailScreen() {
@@ -292,6 +297,13 @@ export default function ProductDetailScreen() {
               </Text>
             </View>
           </View>
+
+          {product.location && (
+            <View style={{marginTop: 16, flexDirection: 'row', alignItems: 'center'}}>
+              <Ionicons name="location-outline" size={16} color="#007AFF" style={{marginRight: 4}} />
+              <Text style={{fontSize: 14, color: "#333333"}}>{product.location.name || "Lokasi Tersedia"}</Text>
+            </View>
+          )}
 
           <View style={styles.divider} />
 

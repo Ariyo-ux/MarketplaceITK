@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
@@ -11,6 +12,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -59,6 +61,13 @@ export default function AddProductScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
 
+  const [includeLocation, setIncludeLocation] = useState(false);
+  const [locationName, setLocationName] = useState<string | null>(null);
+  const [locationCoords, setLocationCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
@@ -102,6 +111,66 @@ export default function AddProductScreen() {
     setCondition("Baru");
     setImageUri(null);
     setImageBase64(null);
+    setIncludeLocation(false);
+    setLocationName(null);
+    setLocationCoords(null);
+  };
+
+  const handleToggleLocation = async (value: boolean) => {
+    setIncludeLocation(value);
+    if (value) {
+      setIsLoading(true);
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          if (Platform.OS === "web") {
+            window.alert("Izin akses lokasi dibutuhkan untuk fitur ini.");
+          } else {
+            Alert.alert(
+              "Izin Ditolak",
+              "Izin akses lokasi dibutuhkan untuk fitur ini.",
+            );
+          }
+          setIncludeLocation(false);
+          setIsLoading(false);
+          return;
+        }
+
+        let location = await Location.getCurrentPositionAsync({});
+        setLocationCoords({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+
+        let reverseGeocode = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+
+        if (reverseGeocode.length > 0) {
+          const loc = reverseGeocode[0];
+          const name = [loc.city, loc.region].filter(Boolean).join(", ");
+          setLocationName(name || "Lokasi Ditemukan");
+        } else {
+          setLocationName("Lokasi Ditemukan");
+        }
+      } catch (error) {
+        console.error("Error getting location", error);
+        if (Platform.OS === "web") {
+          window.alert("Gagal mendapatkan lokasi.");
+        } else {
+          Alert.alert("Error", "Gagal mendapatkan lokasi.");
+        }
+        setIncludeLocation(false);
+        setLocationName(null);
+        setLocationCoords(null);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setLocationCoords(null);
+      setLocationName(null);
+    }
   };
 
   const handleSubmit = async () => {
@@ -161,6 +230,14 @@ export default function AddProductScreen() {
           sellerPhone: user!.phone || "",
           sellerNim: user!.nim || "",
           sellerPhoto: user!.photoBase64 || null,
+          location:
+            includeLocation && locationCoords
+              ? {
+                  latitude: locationCoords.latitude,
+                  longitude: locationCoords.longitude,
+                  name: locationName,
+                }
+              : null,
           status: "active",
           createdAt: serverTimestamp(),
         });
@@ -430,6 +507,41 @@ export default function AddProductScreen() {
                   </TouchableOpacity>
                 );
               })}
+            </View>
+          </View>
+
+          {/* Lokasi */}
+          <View style={styles.formGroup}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View>
+                <Text style={styles.label}>Tambahkan Lokasi Saat Ini</Text>
+                {locationName && (
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: COLORS.outline,
+                      marginTop: 4,
+                    }}
+                  >
+                    {locationName}
+                  </Text>
+                )}
+              </View>
+              <Switch
+                value={includeLocation}
+                onValueChange={handleToggleLocation}
+                trackColor={{
+                  false: COLORS.outlineVariant,
+                  true: COLORS.primaryContainer,
+                }}
+                thumbColor={includeLocation ? COLORS.primary : COLORS.white}
+              />
             </View>
           </View>
 
