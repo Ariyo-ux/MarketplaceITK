@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -48,7 +49,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} bounces={false} showsVerticalScrollIndicator={false}>
       <View style={[styles.header, { paddingTop: Math.max(insets.top + 20, 60) }]}>
         <View style={styles.profileInfo}>
 
@@ -115,8 +116,10 @@ export default function ProfileScreen() {
           <Text style={styles.walletLabel}>Pembayaran</Text>
           <Text style={styles.walletValue}>
             {(() => {
-              const done = transactions.filter((t: any) => t.type === 'Beli' && t.status === 'Selesai');
-              const total = done.reduce((sum: number, t: any) => sum + t.priceNum, 0);
+              const paidLocal = transactions.filter((t: any) => t.type === 'Beli' && t.status !== 'Proses' && t.status !== 'Dibatalkan');
+              const paidFirebase = buyerOrders.filter((o: any) => o.status !== 'Proses' && o.status !== 'Dibatalkan');
+              const total = paidLocal.reduce((sum: number, t: any) => sum + t.priceNum, 0)
+                          + paidFirebase.reduce((sum: number, o: any) => sum + o.totalPrice, 0);
               return total > 0 ? 'Rp ' + total.toLocaleString('id-ID') : 'Rp 0';
             })()}
           </Text>
@@ -206,7 +209,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 

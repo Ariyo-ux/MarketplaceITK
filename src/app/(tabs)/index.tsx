@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { db } from "../../config/firebase";
 
 type Product = {
@@ -45,6 +46,7 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -105,7 +107,7 @@ export default function HomeScreen() {
     <View style={styles.headerWrapper}>
       {/* AppBar */}
       {isSearchActive ? (
-        <View style={styles.appBar}>
+        <View style={[styles.appBar, { paddingTop: Math.max(insets.top + 8, 48) }]}>
           <TouchableOpacity
             onPress={() => {
               setIsSearchActive(false);
@@ -133,7 +135,7 @@ export default function HomeScreen() {
           )}
         </View>
       ) : (
-        <View style={styles.appBar}>
+        <View style={[styles.appBar, { paddingTop: Math.max(insets.top + 8, 48) }]}>
           <View style={styles.appBarTextContainer}>
             <Text style={styles.appBarTitle}>Marketplace ITK</Text>
             <Text style={styles.appBarSubtitle}>
@@ -324,7 +326,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 60, // Safe area replacement
     paddingBottom: 16,
     backgroundColor: "#ffffff",
     borderBottomWidth: 1,

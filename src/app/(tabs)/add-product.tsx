@@ -21,6 +21,7 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../context/AuthContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CATEGORIES = [
   "Buku",
@@ -52,6 +53,7 @@ const COLORS = {
 export default function AddProductScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -338,7 +340,7 @@ export default function AddProductScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.appBar}>
+        <View style={[styles.appBar, { paddingTop: Math.max(insets.top + 12, 52) }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.closeButton}
@@ -696,7 +698,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 56,
     paddingBottom: 16,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,

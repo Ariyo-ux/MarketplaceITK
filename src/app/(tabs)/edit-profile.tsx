@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { useAuth } from "../../context/AuthContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function EditProfileScreen() {
   const [phone, setPhone] = useState(user?.phone || "");
   const [photoBase64, setPhotoBase64] = useState(user?.photoBase64 || "");
   const [isSaving, setIsSaving] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const pickImage = async () => {
     try {
@@ -82,7 +84,7 @@ export default function EditProfileScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 16, 56) }]}>
         <TouchableOpacity
           onPress={() => router.push("/profile")}
           style={styles.backButton}
@@ -181,7 +183,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#EEEEEE",
