@@ -1,18 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const SAVED_ITEMS = [
-  {
-    id: '1',
-    title: 'Headset Gaming',
-    price: 300000,
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=400&auto=format&fit=crop',
-  },
-];
+import { useSaved } from '../../context/SavedContext';
 
 export default function SavedProductsScreen() {
   const router = useRouter();
+  const { savedProducts } = useSaved();
 
   return (
     <View style={styles.container}>
@@ -22,25 +15,36 @@ export default function SavedProductsScreen() {
         </TouchableOpacity>
         <View>
           <Text style={styles.title}>Barang Disimpan</Text>
-          <Text style={styles.subtitle}>{SAVED_ITEMS.length} barang tersimpan</Text>
+          <Text style={styles.subtitle}>{savedProducts.length} barang tersimpan</Text>
         </View>
       </View>
 
-      <FlatList
-        data={SAVED_ITEMS}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={{ uri: item.image }} style={styles.image} />
-            <View style={styles.info}>
-              <Text style={styles.name} numberOfLines={2}>{item.title}</Text>
-              <Text style={styles.price}>Rp {item.price.toLocaleString('id-ID')}</Text>
-            </View>
-          </View>
-        )}
-      />
+      {savedProducts.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons name="bookmark-outline" size={60} color="#ccc" />
+          <Text style={styles.emptyText}>Belum ada barang yang disimpan</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={savedProducts}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity 
+              style={styles.card}
+              onPress={() => router.push(`/product/${item.id}`)}
+            >
+              <Image source={{ uri: item.imageBase64 || 'https://via.placeholder.com/150' }} style={styles.image} />
+              <View style={styles.info}>
+                <Text style={styles.name} numberOfLines={2}>{item.title}</Text>
+                <Text style={styles.seller}>Penjual: {item.sellerName}</Text>
+                <Text style={styles.price}>Rp {item.price.toLocaleString('id-ID')}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -103,11 +107,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#333333',
+    marginBottom: 4,
+  },
+  seller: {
+    fontSize: 13,
+    color: '#666',
     marginBottom: 6,
   },
   price: {
     fontSize: 15,
     fontWeight: 'bold',
     color: '#007AFF',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#888',
   },
 });

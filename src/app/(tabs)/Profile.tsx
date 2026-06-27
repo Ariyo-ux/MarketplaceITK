@@ -9,11 +9,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
+import { useTransaction } from "../../context/TransactionContext";
+import { useOrders } from "../../context/OrderContext";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const { balance, transactions } = useTransaction();
+  const { buyerOrders } = useOrders();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleLogout = async () => {
     if (Platform.OS === "web") {
@@ -43,8 +49,9 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 20, 60) }]}>
         <View style={styles.profileInfo}>
+
           <View style={styles.avatarContainer}>
             {user?.photoBase64 ? (
               <Image
@@ -55,15 +62,65 @@ export default function ProfileScreen() {
               <Ionicons name="person" size={40} color="#007AFF" />
             )}
           </View>
-          <View style={styles.textInfo}>
-            <Text style={styles.name}>{user?.name ?? "Tamu"}</Text>
-            <Text style={styles.nim}>NIM: {user?.nim ?? "-"}</Text>
-            <Text style={styles.prodi}>
+          <View style={[styles.textInfo, { flex: 1 }]}>
+            <Text 
+              style={styles.name} 
+              numberOfLines={2} 
+              adjustsFontSizeToFit 
+              minimumFontScale={0.7}
+            >
+              {user?.name ?? "Tamu"}
+            </Text>
+            <Text style={styles.nim} numberOfLines={1}>NIM: {user?.nim ?? "-"}</Text>
+            <Text style={styles.prodi} numberOfLines={2}>
               {user?.prodi ?? "-"}{" "}
               {user?.angkatan ? `(Angkatan ${user.angkatan})` : ""}
             </Text>
           </View>
         </View>
+      </View>
+
+      {/* Wallet Section */}
+      <View style={styles.walletContainer}>
+        <TouchableOpacity style={styles.walletItem} onPress={() => router.push('/saldo' as any)} activeOpacity={0.7}>
+          <View style={[styles.walletIcon, { backgroundColor: '#E0F2FE' }]}>
+            <Ionicons name="wallet" size={24} color="#0284C7" />
+          </View>
+          <Text style={styles.walletLabel}>Saldo</Text>
+          <Text style={styles.walletValue}>
+            Rp {balance.toLocaleString('id-ID')}
+          </Text>
+        </TouchableOpacity>
+        <View style={styles.walletDivider} />
+        <TouchableOpacity style={styles.walletItem} onPress={() => router.push('/tagihan' as any)} activeOpacity={0.7}>
+          <View style={[styles.walletIcon, { backgroundColor: '#FFE4E6' }]}>
+            <Ionicons name="receipt" size={24} color="#E11D48" />
+          </View>
+          <Text style={styles.walletLabel}>Tagihan</Text>
+          <Text style={styles.walletValue}>
+            {(() => {
+              const pendingLocal = transactions.filter((t: any) => t.type === 'Beli' && t.status === 'Proses');
+              const pendingFirebase = buyerOrders.filter((o: any) => o.status === 'Proses');
+              const total = pendingLocal.reduce((sum: number, t: any) => sum + t.priceNum, 0) 
+                          + pendingFirebase.reduce((sum: number, o: any) => sum + o.totalPrice, 0);
+              return total > 0 ? 'Rp ' + total.toLocaleString('id-ID') : 'Rp 0';
+            })()}
+          </Text>
+        </TouchableOpacity>
+        <View style={styles.walletDivider} />
+        <TouchableOpacity style={styles.walletItem} onPress={() => router.push('/pembayaran' as any)} activeOpacity={0.7}>
+          <View style={[styles.walletIcon, { backgroundColor: '#DCFCE7' }]}>
+            <Ionicons name="card" size={24} color="#16A34A" />
+          </View>
+          <Text style={styles.walletLabel}>Pembayaran</Text>
+          <Text style={styles.walletValue}>
+            {(() => {
+              const done = transactions.filter((t: any) => t.type === 'Beli' && t.status === 'Selesai');
+              const total = done.reduce((sum: number, t: any) => sum + t.priceNum, 0);
+              return total > 0 ? 'Rp ' + total.toLocaleString('id-ID') : 'Rp 0';
+            })()}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.menuContainer}>
@@ -89,6 +146,19 @@ export default function ProfileScreen() {
               <Ionicons name="heart-outline" size={20} color="#388E3C" />
             </View>
             <Text style={styles.menuText}>Barang Disimpan</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#CCC" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push("/(tabs)/transaction")}
+        >
+          <View style={styles.menuLeft}>
+            <View style={[styles.iconBox, { backgroundColor: "#F3E5F5" }]}>
+              <Ionicons name="receipt-outline" size={20} color="#8E24AA" />
+            </View>
+            <Text style={styles.menuText}>Transaksi</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#CCC" />
         </TouchableOpacity>
@@ -148,7 +218,6 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#007AFF",
     padding: 20,
-    paddingTop: 80,
     paddingBottom: 40,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -177,7 +246,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   name: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#FFFFFF",
     marginBottom: 4,
@@ -222,8 +291,51 @@ const styles = StyleSheet.create({
   },
   menuText: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#333333",
+    fontWeight: "bold",
+    color: "#666",
+  },
+  walletContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FFF",
+    marginHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: -20, // Menumpang sedikit di atas header jika diinginkan, atau hapus margin ini
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  walletItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  walletIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  walletLabel: {
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 4,
+  },
+  walletValue: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#0F172A",
+  },
+  walletDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#F1F5F9",
   },
   logoutItem: {
     marginTop: 20,

@@ -14,8 +14,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../context/AuthContext";
+import { useSaved } from "../../context/SavedContext";
 
 type Product = {
   id: string;
@@ -43,6 +45,7 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { isSaved, toggleSaved } = useSaved();
   const productId = Array.isArray(id) ? id[0] : id;
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -247,13 +250,33 @@ export default function ProductDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Back button */}
-      <TouchableOpacity
-        style={styles.floatingBack}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={22} color="#333" />
-      </TouchableOpacity>
+      {/* Top Buttons */}
+      <View style={styles.topButtonsContainer}>
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={22} color="#333" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={() => {
+            toggleSaved({
+              id: product.id,
+              title: product.title,
+              price: product.price,
+              imageBase64: product.imageBase64 || "",
+              sellerName: product.sellerName || "Penjual",
+            });
+          }}
+        >
+          <Ionicons
+            name={isSaved(product.id) ? "bookmark" : "bookmark-outline"}
+            size={22}
+            color={isSaved(product.id) ? "#007AFF" : "#333"}
+          />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <Image
@@ -299,9 +322,41 @@ export default function ProductDetailScreen() {
           </View>
 
           {product.location && (
-            <View style={{marginTop: 16, flexDirection: 'row', alignItems: 'center'}}>
-              <Ionicons name="location-outline" size={16} color="#007AFF" style={{marginRight: 4}} />
-              <Text style={{fontSize: 14, color: "#333333"}}>{product.location.name || "Lokasi Tersedia"}</Text>
+            <View style={{ marginTop: 16 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <Ionicons
+                  name="location-outline"
+                  size={16}
+                  color="#007AFF"
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={{ fontSize: 14, color: "#333333" }}>
+                  {product.location.name || "Lokasi Tersedia"}
+                </Text>
+              </View>
+              <View
+                style={{ height: 150, borderRadius: 12, overflow: "hidden" }}
+              >
+                <MapView
+                  provider={PROVIDER_GOOGLE}
+                  style={{ flex: 1 }}
+                  initialRegion={{
+                    latitude: product.location.latitude,
+                    longitude: product.location.longitude,
+                    latitudeDelta: 0.005,
+                    longitudeDelta: 0.005,
+                  }}
+                  scrollEnabled={false}
+                >
+                  <Marker coordinate={product.location} />
+                </MapView>
+              </View>
             </View>
           )}
 
@@ -374,32 +429,88 @@ export default function ProductDetailScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity
-            style={[
-              styles.contactButton,
-              product.status === "sold" && styles.contactButtonDisabled,
-            ]}
-            onPress={handleContactSeller}
-            disabled={product.status === "sold"}
-          >
-            {product.status === "sold" ? (
-              <Text style={styles.contactButtonText}>
-                Produk Tidak Tersedia
-              </Text>
-            ) : (
-              <>
+          <View style={{ gap: 10 }}>
+            <TouchableOpacity
+              style={[
+                styles.contactButton,
+                { backgroundColor: "#16A34A" },
+                product.status === "sold" && styles.contactButtonDisabled,
+              ]}
+              onPress={() =>
+                router.push({
+                  pathname: "/checkout",
+                  params: {
+                    productId: product.id,
+                    title: product.title,
+                    price: String(product.price),
+                    imageBase64: product.imageBase64 || "",
+                    sellerName: product.sellerName || "Penjual",
+                    sellerId: product.sellerId || "",
+                    stock: String(product.stock || 1),
+                  },
+                })
+              }
+              disabled={product.status === "sold"}
+            >
+              <Ionicons
+                name="bag-check"
+                size={22}
+                color="#FFFFFF"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.contactButtonText}>Beli Sekarang</Text>
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                style={[
+                  styles.contactButton,
+                  { flex: 1, backgroundColor: "#1877F2" },
+                  product.status === "sold" && styles.contactButtonDisabled,
+                ]}
+                onPress={() =>
+                  router.push({
+                    pathname: "/chat/[id]",
+                    params: {
+                      id: product.sellerId || "unknown",
+                      name: product.sellerName || "Penjual",
+                      productName: product.title,
+                      productImage: product.imageBase64 || "",
+                      productPrice: product.price,
+                      initialMessage: `Apakah barang "${product.title}" ini masih ready?`,
+                    },
+                  })
+                }
+                disabled={product.status === "sold"}
+              >
+                <Ionicons
+                  name="chatbubbles"
+                  size={22}
+                  color="#FFFFFF"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.contactButtonText}>Chat</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.contactButton,
+                  { flex: 1 },
+                  product.status === "sold" && styles.contactButtonDisabled,
+                ]}
+                onPress={handleContactSeller}
+                disabled={product.status === "sold"}
+              >
                 <Ionicons
                   name="logo-whatsapp"
                   size={22}
                   color="#FFFFFF"
                   style={{ marginRight: 8 }}
                 />
-                <Text style={styles.contactButtonText}>
-                  Hubungi Penjual via WA
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+                <Text style={styles.contactButtonText}>WhatsApp</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
       </View>
     </View>
@@ -416,11 +527,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  floatingBack: {
+  topButtonsContainer: {
     position: "absolute",
     top: 52,
     left: 16,
+    right: 16,
     zIndex: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  floatingButton: {
     backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 20,
     width: 40,
@@ -544,7 +660,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: "#FFFFFF",
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: Platform.OS === "android" ? 24 : 32,
     borderTopWidth: 1,
     borderTopColor: "#EEEEEE",
   },

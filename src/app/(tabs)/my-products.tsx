@@ -2,17 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
+import { useChat } from '../../context/ChatContext';
+import { useTransaction } from '../../context/TransactionContext';
 
 type Product = {
   id: string;
@@ -22,22 +16,25 @@ type Product = {
   category: string;
   condition: string;
   status: string;
+  stock?: number;
   createdAt: any;
 };
 
 export default function MyProductsScreen() {
   const { user } = useAuth();
+  const { simulateIncomingOrder } = useChat();
+  const { addTransaction } = useTransaction();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ... [Skipping unchanged use effect] ...
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
       return;
     }
 
-    // Query tanpa orderBy agar tidak perlu composite index
     const q = query(
       collection(db, 'products'),
       where('sellerId', '==', user.id)
@@ -81,6 +78,46 @@ export default function MyProductsScreen() {
 
   const activeCount = products.filter(p => p.status === 'active').length;
 
+  // Pool pembeli dummy ITK
+  const DUMMY_BUYERS = [
+    { id: 'buyer_budi', name: 'Budi Santoso', nim: '11231045' },
+    { id: 'buyer_rina', name: 'Rina Melati', nim: '04231021' },
+    { id: 'buyer_ahmad', name: 'Ahmad Subarjo', nim: '10231033' },
+    { id: 'buyer_siti', name: 'Siti Nurhaliza', nim: '20231007' },
+    { id: 'buyer_dani', name: 'Dani Pratama', nim: '07231018' },
+    { id: 'buyer_ayu', name: 'Ayu Lestari', nim: '15231042' },
+  ];
+
+  const handleSimulateOrder = (item: Product) => {
+    // Pilih pembeli random
+    const buyer = DUMMY_BUYERS[Math.floor(Math.random() * DUMMY_BUYERS.length)];
+    // Jumlah beli acak (1-3, maks stock)
+    const maxQty = Math.min(item.stock || 1, 3);
+    const qty = Math.max(1, Math.floor(Math.random() * maxQty) + 1);
+    const totalPrice = item.price * qty;
+
+    // Chat masuk dari pembeli
+    simulateIncomingOrder(item.title, totalPrice, item.imageBase64 || '', buyer.name, buyer.id);
+    
+    // Tambahkan transaksi Penjualan ke riwayat
+    addTransaction({
+      type: 'Jual',
+      status: 'Proses',
+      title: item.title,
+      price: `Rp ${totalPrice.toLocaleString('id-ID')}`,
+      priceNum: totalPrice,
+      image: item.imageBase64 || '',
+      otherUser: buyer.name,
+      productId: item.id,
+      quantity: qty,
+    });
+
+    Alert.alert(
+      "📦 Pesanan Baru Masuk!", 
+      `${buyer.name} (${buyer.nim}) memesan ${item.title} sebanyak ${qty} pcs.\n\nSilakan buka Chating > Notifikasi untuk ACC atau Tolak pesanan.`
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -112,22 +149,33 @@ export default function MyProductsScreen() {
             </View>
           }
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Image
-                source={{ uri: item.imageBase64 }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-              <View style={styles.info}>
-                <Text style={styles.name} numberOfLines={2}>{item.title}</Text>
-                <Text style={styles.price}>Rp {item.price.toLocaleString('id-ID')}</Text>
-                <View style={[styles.statusBadge, item.status === 'sold' && styles.statusBadgeSold]}>
-                  <Text style={[styles.statusText, item.status === 'sold' && styles.statusTextSold]}>
-                    {item.status === 'active' ? 'Aktif' : 'Terjual'}
-                  </Text>
+            <View style={styles.cardWrapper}>
+              <View style={styles.card}>
+                <Image
+                  source={{ uri: item.imageBase64 }}
+                  style={styles.image}
+                  resizeMode="cover"
+                />
+                <View style={styles.info}>
+                  <Text style={styles.name} numberOfLines={2}>{item.title}</Text>
+                  <Text style={styles.price}>Rp {item.price.toLocaleString('id-ID')}</Text>
+                  <View style={[styles.statusBadge, item.status === 'sold' && styles.statusBadgeSold]}>
+                    <Text style={[styles.statusText, item.status === 'sold' && styles.statusTextSold]}>
+                      {item.status === 'active' ? 'Aktif' : 'Terjual'}
+                    </Text>
+                  </View>
                 </View>
+                <Ionicons name="chevron-forward" size={20} color="#CCC" />
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+              {item.status === 'active' && (
+                <TouchableOpacity 
+                  style={styles.simulateButton}
+                  onPress={() => handleSimulateOrder(item)}
+                >
+                  <Ionicons name="cart" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.simulateButtonText}>Simulasi Pembeli Masuk</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         />
@@ -207,7 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 12,
-    marginBottom: 12,
+    marginBottom: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -253,5 +301,25 @@ const styles = StyleSheet.create({
   },
   statusTextSold: {
     color: '#D32F2F',
+  },
+  cardWrapper: {
+    marginBottom: 12,
+  },
+  simulateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    marginTop: -16,
+    paddingTop: 20,
+    zIndex: -1,
+  },
+  simulateButtonText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

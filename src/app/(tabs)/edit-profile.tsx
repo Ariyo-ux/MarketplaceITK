@@ -1,7 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,16 +14,16 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { useAuth } from '../../context/AuthContext';
+} from "react-native";
+import { useAuth } from "../../context/AuthContext";
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, updateProfile } = useAuth();
 
-  const [name, setName] = useState(user?.name || '');
-  const [phone, setPhone] = useState(user?.phone || '');
-  const [photoBase64, setPhotoBase64] = useState(user?.photoBase64 || '');
+  const [name, setName] = useState(user?.name || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [photoBase64, setPhotoBase64] = useState(user?.photoBase64 || "");
   const [isSaving, setIsSaving] = useState(false);
 
   const pickImage = async () => {
@@ -40,14 +40,14 @@ export default function EditProfileScreen() {
         setPhotoBase64(`data:image/jpeg;base64,${result.assets[0].base64}`);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Gagal memilih gambar.');
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Gagal memilih gambar.");
     }
   };
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Validasi', 'Nama tidak boleh kosong.');
+      Alert.alert("Validasi", "Nama tidak boleh kosong.");
       return;
     }
 
@@ -58,12 +58,12 @@ export default function EditProfileScreen() {
         phone,
         photoBase64,
       });
-      Alert.alert('Sukses', 'Profil berhasil diperbarui.', [
-        { text: 'OK', onPress: () => router.push('/profile') },
+      Alert.alert("Sukses", "Profil berhasil diperbarui.", [
+        { text: "OK", onPress: () => router.push("/profile") },
       ]);
     } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Gagal memperbarui profil.');
+      console.error("Error updating profile:", error);
+      Alert.alert("Error", "Gagal memperbarui profil.");
     } finally {
       setIsSaving(false);
     }
@@ -80,10 +80,13 @@ export default function EditProfileScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/profile')} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.push("/profile")}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <View>
@@ -100,11 +103,16 @@ export default function EditProfileScreen() {
             ) : (
               <Ionicons name="person" size={50} color="#007AFF" />
             )}
-            <TouchableOpacity style={styles.editAvatarButton} onPress={pickImage}>
+            <TouchableOpacity
+              style={styles.editAvatarButton}
+              onPress={pickImage}
+            >
               <Ionicons name="camera" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.avatarHelperText}>Ketuk ikon kamera untuk mengubah foto</Text>
+          <Text style={styles.avatarHelperText}>
+            Ketuk ikon kamera untuk mengubah foto
+          </Text>
         </View>
 
         <View style={styles.formGroup}>
@@ -161,136 +169,136 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: "#F5F7FA",
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: "#EEEEEE",
   },
   backButton: {
     marginRight: 16,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
+    fontWeight: "bold",
+    color: "#1A1A1A",
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#888888',
+    color: "#888888",
   },
   content: {
     padding: 20,
   },
   avatarSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 24,
   },
   avatarContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#EBF5FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    backgroundColor: "#EBF5FF",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
     borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
   avatarImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 60,
   },
   editAvatarButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: "#FFFFFF",
   },
   avatarHelperText: {
     marginTop: 12,
     fontSize: 13,
-    color: '#666666',
+    color: "#666666",
   },
   formGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: "600",
+    color: "#333333",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#1A1A1A',
+    color: "#1A1A1A",
   },
   inputDisabled: {
-    backgroundColor: '#F5F5F5',
-    color: '#888888',
+    backgroundColor: "#F5F5F5",
+    color: "#888888",
   },
   helperText: {
     fontSize: 12,
-    color: '#888888',
+    color: "#888888",
     marginTop: 6,
   },
   footer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    paddingBottom: Platform.OS === "ios" ? 40 : 20,
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
+    borderTopColor: "#EEEEEE",
   },
   saveButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     borderRadius: 14,
     paddingVertical: 16,
-    alignItems: 'center',
-    shadowColor: '#007AFF',
+    alignItems: "center",
+    shadowColor: "#007AFF",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
   },
   saveButtonDisabled: {
-    backgroundColor: '#A0CFFF',
+    backgroundColor: "#A0CFFF",
     shadowOpacity: 0,
     elevation: 0,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });

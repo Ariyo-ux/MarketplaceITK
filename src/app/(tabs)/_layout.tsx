@@ -1,14 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { useLocationTracking } from "../../hooks/useLocationTracking";
+import { Platform, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
+  useLocationTracking(); // Mulai tracking lokasi secara background ketika tab ini diload
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: "#1877F2",
         tabBarInactiveTintColor: "#999999",
         headerShown: false,
-        tabBarStyle: { height: 60, paddingBottom: 10, paddingTop: 5 },
+        tabBarStyle: { 
+          height: Platform.OS === 'android' ? 65 + insets.bottom : 85, 
+          paddingBottom: Platform.OS === 'android' ? Math.max(15, insets.bottom) : 25, 
+          paddingTop: 5 
+        },
       }}
     >
       <Tabs.Screen
@@ -18,6 +28,19 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: "Map",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "map" : "map-outline"}
               size={24}
               color={color}
             />
@@ -40,10 +63,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="mail"
         options={{
-          title: "Mail",
+          title: "Chating",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? "mail" : "mail-outline"}
+              name={focused ? "chatbubbles" : "chatbubbles-outline"}
               size={24}
               color={color}
             />
@@ -53,14 +76,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transaction"
         options={{
-          title: "Transaction",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "receipt" : "receipt-outline"}
-              size={24}
-              color={color}
-            />
-          ),
+          href: null,
+          title: "Transaksi",
         }}
       />
       <Tabs.Screen

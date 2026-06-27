@@ -6,6 +6,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { auth, db, isConfigured } from "../config/firebase";
 
 // Struktur data user
@@ -85,6 +86,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => unsubscribe();
   }, []);
+
+  // Update online status in Firestore when app goes to background/foreground
+  useEffect(() => {
+    if (!user || !isConfigured) return;
+
+    const updateOnlineStatus = async (isOnline: boolean) => {
+      try {
+        const docRef = doc(db, "users", user.id);
+        await setDoc(docRef, { isOnline }, { merge: true });
+      } catch (error) {
+        console.log("Error updating online status:", error);
+      }
+    };
+
+    // Initial online status when component mounts
+    updateOnlineStatus(true);
+
+    const subscription = AppState.addEventListener("change", (nextAppState: AppStateStatus) => {
+      if (nextAppState === "active") {
+        updateOnlineStatus(true);
+      } else if (nextAppState === "background" || nextAppState === "inactive") {
+        updateOnlineStatus(false);
+      }
+    });
+
+    return () => {
+      updateOnlineStatus(false);
+      subscription.remove();
+    };
+  }, [user?.id]);
 
   // Login dengan Firebase Auth
   const login = async (email: string, password?: string) => {

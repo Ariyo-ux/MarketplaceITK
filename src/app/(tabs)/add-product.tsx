@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../context/AuthContext";
 
@@ -543,6 +544,57 @@ export default function AddProductScreen() {
                 thumbColor={includeLocation ? COLORS.primary : COLORS.white}
               />
             </View>
+
+            {includeLocation && locationCoords && (
+              <View
+                style={{
+                  marginTop: 16,
+                  height: 200,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                }}
+              >
+                <MapView
+                  provider={PROVIDER_GOOGLE}
+                  style={{ flex: 1 }}
+                  initialRegion={{
+                    latitude: locationCoords.latitude,
+                    longitude: locationCoords.longitude,
+                    latitudeDelta: 0.005,
+                    longitudeDelta: 0.005,
+                  }}
+                  onPress={async (e) => {
+                    const coords = e.nativeEvent.coordinate;
+                    setLocationCoords(coords);
+                    try {
+                      let reverseGeocode =
+                        await Location.reverseGeocodeAsync(coords);
+                      if (reverseGeocode.length > 0) {
+                        const loc = reverseGeocode[0];
+                        const name = [loc.city, loc.region]
+                          .filter(Boolean)
+                          .join(", ");
+                        setLocationName(name || "Lokasi Dipilih");
+                      } else {
+                        setLocationName("Lokasi Dipilih");
+                      }
+                    } catch (error) {
+                      console.log(
+                        "Error reverse geocoding new location",
+                        error,
+                      );
+                    }
+                  }}
+                >
+                  <Marker coordinate={locationCoords} />
+                </MapView>
+                <Text
+                  style={{ fontSize: 12, color: COLORS.outline, marginTop: 8 }}
+                >
+                  * Anda dapat menekan peta untuk menyesuaikan lokasi barang
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Deskripsi */}

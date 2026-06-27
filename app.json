@@ -8,9 +8,17 @@
     "scheme": "marketplaceitk",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "config": {
+        "googleMapsApiKey": "ISI_DENGAN_IOS_API_KEY_ANDA"
+      }
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "ISI_DENGAN_ANDROID_API_KEY_ANDA"
+        }
+      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
