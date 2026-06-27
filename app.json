@@ -25,7 +25,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ryooo0413.MarketplaceITK"
     },
     "web": {
       "output": "static",
@@ -33,6 +34,14 @@
     },
     "plugins": [
       "expo-router",
+      "expo-location",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Izinkan MarketplaceITK untuk mengakses foto Anda untuk menambahkan foto profil atau produk.",
+          "cameraPermission": "Izinkan MarketplaceITK untuk menggunakan kamera Anda."
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -52,6 +61,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3bb1e835-5fcb-44da-9c65-67ef61908c6d"
+      }
     }
   }
 }
