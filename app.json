@@ -16,7 +16,7 @@
     "android": {
       "config": {
         "googleMaps": {
-          "apiKey": "ISI_DENGAN_ANDROID_API_KEY_ANDA"
+          "apiKey": ""
         }
       },
       "adaptiveIcon": {
